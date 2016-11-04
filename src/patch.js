@@ -63,7 +63,7 @@ let patchImpl = {
         return Mixins.Document;
       case Node.TEXT_NODE:
       case Node.COMMENT_NODE:
-        return Mixins.Node;
+        return Mixins.CharacterData;
     }
   },
 
