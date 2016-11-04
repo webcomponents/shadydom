@@ -425,6 +425,126 @@ Object.defineProperties(NodeMixin, {
   }
 });
 
+let ParentNodeMixin = {
+  
+  append(...nodes) {
+    const node = convertNodesIntoANode(nodes, this.ownerDocument);
+    return this.insertBefore(node);
+  },
+
+  prepend(...nodes) {
+    const node = convertNodesIntoANode(nodes, this.ownerDocument);
+    return this.insertBefore(node, this.firstChild);
+  }
+
+};
+
+Object.defineProperties(ParentNodeMixin, {
+
+  children: {
+    get() {
+      if (tree.Logical.hasChildNodes(this)) {
+        return Array.prototype.filter.call(this.childNodes, function(n) {
+          return (n.nodeType === Node.ELEMENT_NODE);
+        });
+      } else {
+        return tree.arrayCopyChildren(this);
+      }
+    },
+    configurable: true
+  },
+
+  firstElementChild: {
+    get() {
+      return tree.Logical.getFirstElementChild(this);
+    },
+    configurable: true
+  },
+
+  lastElementChild: {
+    get() {
+      return tree.Logical.getLastElementChild(this);
+    },
+    configurable: true
+  },
+
+  childElementCount: {
+    get() {
+      let count = 0;
+      const childNodes = tree.Logical.getChildNodes(this);
+      for (let i = 0; i < childNodes.length; i++) {
+        if (childNodes[i].nodeType === Node.ELEMENT_NODE) {
+          count++;
+        }
+      }
+      return count;
+    },
+    configurable: true
+  }
+
+});
+
+let ChildNodeMixin = {
+
+  before(...nodes) {
+    // https://dom.spec.whatwg.org/#dom-childnode-before
+    const parent = this.parentNode;
+    if (!parent) {
+      return;
+    }
+    let viablePreviousSibling = this.previousSibling;
+    while (viablePreviousSibling && nodes.indexOf(viablePreviousSibling) !== -1) {
+      viablePreviousSibling = viablePreviousSibling.previousSibling;
+    }
+    const node = convertNodesIntoANode(nodes, parent.ownerDocument);
+    viablePreviousSibling = viablePreviousSibling ? viablePreviousSibling.nextSibling : parent.firstChild;
+    parent.insertBefore(node, viablePreviousSibling);
+  },
+
+  after(...nodes) {
+    // https://dom.spec.whatwg.org/#dom-childnode-after
+    const parent = this.parentNode;
+    if (!parent) {
+      return;
+    }
+    let viableNextSibling = this.nextSibling;
+    while (viableNextSibling && nodes.indexOf(viableNextSibling) !== -1) {
+      viableNextSibling = viableNextSibling.nextSibling;
+    }
+    const node = convertNodesIntoANode(nodes, parent.ownerDocument);
+    parent.insertBefore(node, viableNextSibling);
+  },
+
+  replaceWith(...nodes) {
+    // https://dom.spec.whatwg.org/#dom-childnode-replacewith
+    const parent = this.parentNode;
+    if (!parent) {
+      return;
+    }
+    let viableNextSibling = this.nextSibling;
+    while (viableNextSibling && nodes.indexOf(viableNextSibling) !== -1) {
+      viableNextSibling = viableNextSibling.nextSibling;
+    }
+    const node = convertNodesIntoANode(nodes, parent.ownerDocument);
+    if (this.parentNode === parent) {
+      parent.replaceChild(node, this);
+    }
+    else {
+      parent.insertBefore(node, viableNextSibling);
+    }
+  },
+
+  remove() {
+    // https://dom.spec.whatwg.org/#dom-childnode-remove
+    const parent = this.parentNode;
+    if (!parent) {
+      return;
+    }
+    parent.removeChild(this);
+  }
+
+};
+
 let FragmentMixin = {
 
   appendChild(node) {
@@ -560,19 +680,6 @@ Object.defineProperties(FragmentMixin, {
     configurable: true
   },
 
-  children: {
-    get() {
-      if (tree.Logical.hasChildNodes(this)) {
-        return Array.prototype.filter.call(this.childNodes, function(n) {
-          return (n.nodeType === Node.ELEMENT_NODE);
-        });
-      } else {
-        return tree.arrayCopyChildren(this);
-      }
-    },
-    configurable: true
-  },
-
   firstChild: {
     get() {
       return tree.Logical.getFirstChild(this);
@@ -583,20 +690,6 @@ Object.defineProperties(FragmentMixin, {
   lastChild: {
     get() {
       return tree.Logical.getLastChild(this);
-    },
-    configurable: true
-  },
-
-  firstElementChild: {
-    get() {
-      return tree.Logical.getFirstElementChild(this);
-    },
-    configurable: true
-  },
-
-  lastElementChild: {
-    get() {
-      return tree.Logical.getLastElementChild(this);
     },
     configurable: true
   },
@@ -708,17 +801,18 @@ Object.defineProperties(UnderActiveElementMixin, {
 
 export let Mixins = {
 
-  Node: utils.extendAll({__patched: 'Node'}, NodeMixin),
+  CharacterData: utils.extendAll({__patched: 'CharacterData'},
+    NodeMixin, ChildNodeMixin),
 
   Fragment: utils.extendAll({__patched: 'Fragment'},
-    NodeMixin, FragmentMixin, ActiveElementMixin),
+    NodeMixin, ParentNodeMixin, FragmentMixin, ActiveElementMixin),
 
   Element: utils.extendAll({__patched: 'Element'},
-    NodeMixin, FragmentMixin, ElementMixin, ActiveElementMixin),
+    NodeMixin, ParentNodeMixin, ChildNodeMixin, FragmentMixin, ElementMixin, ActiveElementMixin),
 
   // Note: activeElement cannot be patched on document!
   Document: utils.extendAll({__patched: 'Document'},
-    NodeMixin, FragmentMixin, ElementMixin, UnderActiveElementMixin)
+    NodeMixin, ParentNodeMixin, FragmentMixin, ElementMixin, UnderActiveElementMixin)
 
 };
 
@@ -821,4 +915,39 @@ export let unobserveChildren = function(handle) {
       handle._node.__dom.observer = null;
     }
   }
+}
+
+// https://dom.spec.whatwg.org/#converting-nodes-into-a-node
+function convertNodesIntoANode(nodes, document) {
+  let node = null;
+
+  for (let i = 0; i < nodes.length; i++) {
+    const item = nodes[i];
+
+    if (typeof item === "string") {
+      nodes[i] = document.createTextNode(item);
+    }
+    else if (!(item instanceof Node)) {
+      let error = new Error(`Cannot insert an item of type "${typeof item}"`);
+      error.name = 'TypeError';
+      throw error;
+    }
+    else {
+      let parent = tree.Logical.getParentNode(item);
+      mixinImpl.removeNodeFromParent(item, parent);
+    }
+  }
+
+  if (nodes.length === 1) {
+    node = nodes[0];
+  }
+  else {
+    node = document.createDocumentFragment();
+
+    for (let i = 0; i < nodes.length; i++) {
+      node.appendChild(nodes[i]);
+    }
+  }
+
+  return node;
 }

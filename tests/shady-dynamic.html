@@ -335,6 +335,25 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <x-test></x-test>
 
+<template id="x-parentnode"><span id="span1"></span><span id="span2"></span></template>
+
+<script>
+  defineTestElement('x-parentnode');
+</script>
+
+<x-parentnode id="test-append-light"><span id="span1"></span><span id="span2"></span></x-parentnode>
+<x-parentnode id="test-prepend-light"><span id="span1"></span><span id="span2"></span></x-parentnode>
+<x-parentnode id="test-append-local"><span id="span1"></span><span id="span2"></span></x-parentnode>
+<x-parentnode id="test-prepend-local"><span id="span1"></span><span id="span2"></span></x-parentnode>
+<x-parentnode id="test-before-light"><span id="span1"></span><span id="span2"></span></x-parentnode>
+<x-parentnode id="test-after-light"><span id="span1"></span><span id="span2"></span></x-parentnode>
+<x-parentnode id="test-replaceWith-light"><span id="span1"></span><span id="span2"></span></x-parentnode>
+<x-parentnode id="test-remove-light"><span id="span1"></span><span id="span2"></span></x-parentnode>
+<x-parentnode id="test-before-local"><span id="span1"></span><span id="span2"></span></x-parentnode>
+<x-parentnode id="test-after-local"><span id="span1"></span><span id="span2"></span></x-parentnode>
+<x-parentnode id="test-replaceWith-local"><span id="span1"></span><span id="span2"></span></x-parentnode>
+<x-parentnode id="test-remove-local"><span id="span1"></span><span id="span2"></span></x-parentnode>
+
 <div class="accessors">
   <x-test-no-distribute><div class="child"></div></x-test-no-distribute>
   <x-project><div class="child"></div></x-project>
@@ -1519,6 +1538,164 @@ suite('non-distributed elements', function() {
   });
 
 });
+
+  suite('ParentNode interface', function() {
+
+    test('ParentNode.append(...nodes) (light)', function() {
+      var element = document.querySelector('#test-append-light');
+      assert.equal(element.childNodes.length, 2);
+      assert.equal(element.shadowRoot.childNodes.length, 2);
+      var span = document.createElement('span');
+      span.id = 'span3';
+      element.append(span, 'text1');
+      assert.equal(element.childNodes.length, 4);
+      assert.equal(element.shadowRoot.childNodes.length, 2);
+      assert.equal(element.childNodes[2].id, 'span3');
+      assert.equal(element.childNodes[3].wholeText, 'text1');
+    });
+
+    test('ParentNode.prepend(...nodes) (light)', function() {
+      var element = document.querySelector('#test-prepend-light');
+      assert.equal(element.childNodes.length, 2);
+      assert.equal(element.shadowRoot.childNodes.length, 2);
+      var span = document.createElement('span');
+      span.id = 'span3';
+      element.prepend(span, 'text1');
+      assert.equal(element.childNodes.length, 4);
+      assert.equal(element.shadowRoot.childNodes.length, 2);
+      assert.equal(element.childNodes[0].id, 'span3');
+      assert.equal(element.childNodes[1].wholeText, 'text1');
+    });
+
+    test('ParentNode.append(...nodes) (local)', function() {
+      var element = document.querySelector('#test-append-local');
+      assert.equal(element.childNodes.length, 2);
+      assert.equal(element.shadowRoot.childNodes.length, 2);
+      var span = document.createElement('span');
+      span.id = 'span3';
+      element.shadowRoot.append(span, 'text1');
+      assert.equal(element.childNodes.length, 2);
+      assert.equal(element.shadowRoot.childNodes.length, 4);
+      assert.equal(element.shadowRoot.childNodes[2].id, 'span3');
+      assert.equal(element.shadowRoot.childNodes[3].wholeText, 'text1');
+    });
+
+    test('ParentNode.prepend(...nodes) (local)', function() {
+      var element = document.querySelector('#test-prepend-local');
+      assert.equal(element.childNodes.length, 2);
+      assert.equal(element.shadowRoot.childNodes.length, 2);
+      var span = document.createElement('span');
+      span.id = 'span3';
+      element.shadowRoot.prepend(span, 'text1');
+      assert.equal(element.childNodes.length, 2);
+      assert.equal(element.shadowRoot.childNodes.length, 4);
+      assert.equal(element.shadowRoot.childNodes[0].id, 'span3');
+      assert.equal(element.shadowRoot.childNodes[1].wholeText, 'text1');
+    });
+
+  });
+
+  suite('ChildNode interface', function() {
+
+    test('ChildNode.before(...nodes) (light)', function() {
+      var element = document.querySelector('#test-before-light');
+      assert.equal(element.childNodes.length, 2);
+      assert.equal(element.shadowRoot.childNodes.length, 2);
+      var span = document.createElement('span');
+      span.id = 'span3';
+      element.firstChild.before(span, 'text1');
+      assert.equal(element.childNodes.length, 4);
+      assert.equal(element.shadowRoot.childNodes.length, 2);
+      assert.equal(element.childNodes[0].id, 'span3');
+      assert.equal(element.childNodes[1].wholeText, 'text1');
+    });
+
+    test('ChildNode.after(...nodes) (light)', function() {
+      var element = document.querySelector('#test-after-light');
+      assert.equal(element.childNodes.length, 2);
+      assert.equal(element.shadowRoot.childNodes.length, 2);
+      var span = document.createElement('span');
+      span.id = 'span3';
+      element.firstChild.after(span, 'text1');
+      assert.equal(element.childNodes.length, 4);
+      assert.equal(element.shadowRoot.childNodes.length, 2);
+      assert.equal(element.childNodes[1].id, 'span3');
+      assert.equal(element.childNodes[2].wholeText, 'text1');
+    });
+
+    test('ChildNode.replaceWith(...nodes) (light)', function() {
+      var element = document.querySelector('#test-replaceWith-light');
+      assert.equal(element.childNodes.length, 2);
+      assert.equal(element.shadowRoot.childNodes.length, 2);
+      var span = document.createElement('span');
+      span.id = 'span3';
+      element.firstChild.replaceWith(span, 'text1');
+      assert.equal(element.childNodes.length, 3);
+      assert.equal(element.shadowRoot.childNodes.length, 2);
+      assert.equal(element.childNodes[0].id, 'span3');
+      assert.equal(element.childNodes[1].wholeText, 'text1');
+    });
+
+    test('ChildNode.remove() (light)', function() {
+      var element = document.querySelector('#test-remove-light');
+      assert.equal(element.childNodes.length, 2);
+      assert.equal(element.shadowRoot.childNodes.length, 2);
+      element.firstChild.remove();
+      assert.equal(element.childNodes.length, 1);
+      assert.equal(element.shadowRoot.childNodes.length, 2);
+      assert.equal(element.firstChild.id, 'span2');
+    });
+
+    test('ChildNode.before(...nodes) (local)', function() {
+      var element = document.querySelector('#test-before-local');
+      assert.equal(element.childNodes.length, 2);
+      assert.equal(element.shadowRoot.childNodes.length, 2);
+      var span = document.createElement('span');
+      span.id = 'span3';
+      element.shadowRoot.firstChild.before(span, 'text1');
+      assert.equal(element.childNodes.length, 2);
+      assert.equal(element.shadowRoot.childNodes.length, 4);
+      assert.equal(element.shadowRoot.childNodes[0].id, 'span3');
+      assert.equal(element.shadowRoot.childNodes[1].wholeText, 'text1');
+    });
+
+    test('ChildNode.after(...nodes) (local)', function() {
+      var element = document.querySelector('#test-after-local');
+      assert.equal(element.childNodes.length, 2);
+      assert.equal(element.shadowRoot.childNodes.length, 2);
+      var span = document.createElement('span');
+      span.id = 'span3';
+      element.shadowRoot.firstChild.after(span, 'text1');
+      assert.equal(element.childNodes.length, 2);
+      assert.equal(element.shadowRoot.childNodes.length, 4);
+      assert.equal(element.shadowRoot.childNodes[1].id, 'span3');
+      assert.equal(element.shadowRoot.childNodes[2].wholeText, 'text1');
+    });
+
+    test('ChildNode.replaceWith(...nodes) (local)', function() {
+      var element = document.querySelector('#test-replaceWith-local');
+      assert.equal(element.childNodes.length, 2);
+      assert.equal(element.shadowRoot.childNodes.length, 2);
+      var span = document.createElement('span');
+      span.id = 'span3';
+      element.shadowRoot.firstChild.replaceWith(span, 'text1');
+      assert.equal(element.childNodes.length, 2);
+      assert.equal(element.shadowRoot.childNodes.length, 3);
+      assert.equal(element.shadowRoot.childNodes[0].id, 'span3');
+      assert.equal(element.shadowRoot.childNodes[1].wholeText, 'text1');
+    });
+
+    test('ChildNode.remove() (local)', function() {
+      var element = document.querySelector('#test-remove-local');
+      assert.equal(element.childNodes.length, 2);
+      assert.equal(element.shadowRoot.childNodes.length, 2);
+      element.shadowRoot.firstChild.remove();
+      assert.equal(element.childNodes.length, 2);
+      assert.equal(element.shadowRoot.childNodes.length, 1);
+      assert.equal(element.shadowRoot.firstChild.id, 'span2');
+    });
+
+  });
 
 </script>
 
