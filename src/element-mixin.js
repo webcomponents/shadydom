@@ -14,6 +14,22 @@ import * as utils from './utils'
 import {getInnerHTML} from './innerHTML'
 import {tree} from './tree'
 
+const native = {
+  getParentNode: Object.getOwnPropertyDescriptor(Node.prototype, 'parentNode').get,
+  getChildNodes: Object.getOwnPropertyDescriptor(Node.prototype, 'childNodes').get,
+  getFirstChild: Object.getOwnPropertyDescriptor(Node.prototype, 'firstChild').get,
+  getLastChild: Object.getOwnPropertyDescriptor(Node.prototype, 'lastChild').get,
+  getNextSibling: Object.getOwnPropertyDescriptor(Node.prototype, 'nextSibling').get,
+  getPreviousSibling: Object.getOwnPropertyDescriptor(Node.prototype, 'previousSibling').get,
+  getParentElement: Object.getOwnPropertyDescriptor(Node.prototype, 'parentElement').get,
+  getChildren: Object.getOwnPropertyDescriptor(Element.prototype, 'children').get,
+  getChildElementCount: Object.getOwnPropertyDescriptor(Element.prototype, 'childElementCount').get,
+  getFirstElementChild: Object.getOwnPropertyDescriptor(Element.prototype, 'firstElementChild').get,
+  getLastElementChild: Object.getOwnPropertyDescriptor(Element.prototype, 'lastElementChild').get,
+  getNextElementSibling: Object.getOwnPropertyDescriptor(Element.prototype, 'nextElementSibling').get,
+  getPreviousElementSibling: Object.getOwnPropertyDescriptor(Element.prototype, 'previousElementSibling').get
+};
+
 let mixinImpl = {
 
   // Try to add node. Record logical info, track insertion points, perform
@@ -377,6 +393,9 @@ Object.defineProperties(NodeMixin, {
 
   parentElement: {
     get() {
+      if (tree.nativeParentOnly(this)) {
+        return native.getParentNode(this);
+      }
       return tree.Logical.getParentNode(this);
     },
     configurable: true
@@ -384,6 +403,9 @@ Object.defineProperties(NodeMixin, {
 
   parentNode: {
     get() {
+      if (tree.nativeParentOnly(this)) {
+        return native.getParentNode(this);
+      }
       return tree.Logical.getParentNode(this);
     },
     configurable: true
@@ -391,6 +413,9 @@ Object.defineProperties(NodeMixin, {
 
   nextSibling: {
     get() {
+      if (tree.nativeParentOnly(this)) {
+        return native.getNextSibling(this);
+      }
       return tree.Logical.getNextSibling(this);
     },
     configurable: true
@@ -398,6 +423,9 @@ Object.defineProperties(NodeMixin, {
 
   previousSibling: {
     get() {
+      if (tree.nativeParentOnly(this)) {
+        return native.getPreviousSibling(this);
+      }
       return tree.Logical.getPreviousSibling(this);
     },
     configurable: true
@@ -405,6 +433,9 @@ Object.defineProperties(NodeMixin, {
 
   nextElementSibling: {
     get() {
+      if (tree.nativeParentOnly(this)) {
+        return native.getNextElementSibling(this);
+      }
       return tree.Logical.getNextElementSibling(this);
     },
     configurable: true
@@ -412,6 +443,9 @@ Object.defineProperties(NodeMixin, {
 
   previousElementSibling: {
     get() {
+      if (tree.nativeParentOnly(this)) {
+        return native.getPreviousElementSibling(this);
+      }
       return tree.Logical.getPreviousElementSibling(this);
     },
     configurable: true
@@ -554,27 +588,38 @@ Object.defineProperties(FragmentMixin, {
 
   childNodes: {
     get() {
-      let c$ = tree.Logical.getChildNodes(this);
-      return Array.isArray(c$) ? c$ : tree.arrayCopyChildNodes(this);
+      if (tree.nativeChildrenOnly(this)) {
+        return native.getChildNodes.call(this);
+      }      
+      return tree.Logical.getChildNodes(this);
     },
     configurable: true
   },
 
   children: {
     get() {
-      if (tree.Logical.hasChildNodes(this)) {
-        return Array.prototype.filter.call(this.childNodes, function(n) {
-          return (n.nodeType === Node.ELEMENT_NODE);
-        });
-      } else {
-        return tree.arrayCopyChildren(this);
+      if (tree.nativeChildrenOnly(this)) {
+        return native.getChildren.call(this);
       }
+      const childNodes = this.childNodes;
+      const children = [];
+      for (let i = 0; i < childNodes.length; i++) {
+        const childNode = childNodes[i];
+        if (childNode.nodeType === Node.ELEMENT_NODE) {
+          children.push(childNode);
+        }
+      }
+      return children;
     },
     configurable: true
   },
 
   firstChild: {
     get() {
+      if (tree.nativeChildrenOnly(this)) {
+        return native.getFirstChild.call(this);
+      }
+
       return tree.Logical.getFirstChild(this);
     },
     configurable: true
@@ -582,6 +627,9 @@ Object.defineProperties(FragmentMixin, {
 
   lastChild: {
     get() {
+      if (tree.nativeChildrenOnly(this)) {
+        return native.getLastChild.call(this);
+      }
       return tree.Logical.getLastChild(this);
     },
     configurable: true
@@ -589,6 +637,9 @@ Object.defineProperties(FragmentMixin, {
 
   firstElementChild: {
     get() {
+      if (tree.nativeChildrenOnly(this)) {
+        return native.getFirstElementChild.call(this);
+      }
       return tree.Logical.getFirstElementChild(this);
     },
     configurable: true
@@ -596,7 +647,20 @@ Object.defineProperties(FragmentMixin, {
 
   lastElementChild: {
     get() {
+      if (tree.nativeChildrenOnly(this)) {
+        return native.getLastElementChild.call(this);
+      }
       return tree.Logical.getLastElementChild(this);
+    },
+    configurable: true
+  },
+
+  childElementCount: {
+    get() {
+      if (tree.nativeChildrenOnly(this)) {
+        return native.getChildElementCount.call(this);
+      }
+      return this.children.length;
     },
     configurable: true
   },

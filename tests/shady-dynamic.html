@@ -1520,6 +1520,88 @@ suite('non-distributed elements', function() {
 
 });
 
+  suite('Elements not valid for attachShadow or <slot> children', function() {
+
+    test('Bypassed node patching within an HTMLTableElement', function() {
+      var div = document.createElement('div');
+      div.attachShadow({ mode: 'open' });
+      var table = document.createElement('table');
+      div.shadowRoot.appendChild(table);
+      var tbody1 = table.createTBody();
+      var tbody2 = table.createTBody();
+      assert.equal(table.childNodes.length, 2);
+      assert.equal(table.children.length, 2);
+      assert.equal(table.childElementCount, 2);
+      assert.equal(table.firstChild, tbody1);
+      assert.equal(table.firstElementChild, tbody1);
+      assert.equal(table.lastChild, tbody2);
+      assert.equal(table.lastElementChild, tbody2);
+      assert.equal(tbody1.parentNode, table);
+      assert.equal(tbody2.parentNode, table);
+      assert.equal(tbody1.parentElement, table);
+      assert.equal(tbody2.parentElement, table);
+      assert.equal(tbody1.nextSibling, tbody2);
+      assert.equal(tbody1.nextElementSibling, tbody2);
+      assert.equal(tbody2.previousSibling, tbody1);
+      assert.equal(tbody2.previousElementSibling, tbody1);
+      var caption = table.createCaption();
+      assert.equal(caption.parentNode, table);
+      assert.equal(caption.parentElement, table);
+      // thead and tfoot are the same proto as tbody; no need to test
+    });
+
+    test('Bypassed node patching within an HTMLTableSectionElement', function() {
+      var div = document.createElement('div');
+      div.attachShadow({ mode: 'open' });
+      var table = document.createElement('table');
+      div.shadowRoot.appendChild(table);
+      var tbody = table.createTBody();
+      var row1 = tbody.insertRow();
+      var row2 = tbody.insertRow();
+      assert.equal(tbody.childNodes.length, 2);
+      assert.equal(tbody.children.length, 2);
+      assert.equal(tbody.childElementCount, 2);
+      assert.equal(tbody.firstChild, row1);
+      assert.equal(tbody.firstElementChild, row1);
+      assert.equal(tbody.lastChild, row2);
+      assert.equal(tbody.lastElementChild, row2);
+      assert.equal(row1.parentNode, tbody);
+      assert.equal(row2.parentNode, tbody);
+      assert.equal(row1.parentElement, tbody);
+      assert.equal(row2.parentElement, tbody);
+      assert.equal(row1.nextSibling, row2);
+      assert.equal(row1.nextElementSibling, row2);
+      assert.equal(row2.previousSibling, row1);
+      assert.equal(row2.previousElementSibling, row1);
+    });
+
+    test('Bypassed node patching within an HTMLTableRowElement', function() {
+      var div = document.createElement('div');
+      div.attachShadow({ mode: 'open' });
+      var table = document.createElement('table');
+      div.shadowRoot.appendChild(table);
+      var row = table.insertRow();
+      var cell1 = row.insertCell();
+      var cell2 = row.insertCell();
+      assert.equal(row.childNodes.length, 2);
+      assert.equal(row.children.length, 2);
+      assert.equal(row.childElementCount, 2);
+      assert.equal(row.firstChild, cell1);
+      assert.equal(row.firstElementChild, cell1);
+      assert.equal(row.lastChild, cell2);
+      assert.equal(row.lastElementChild, cell2);
+      assert.equal(cell1.parentNode, row);
+      assert.equal(cell2.parentNode, row);
+      assert.equal(cell1.parentElement, row);
+      assert.equal(cell2.parentElement, row);
+      assert.equal(cell1.nextSibling, cell2);
+      assert.equal(cell1.nextElementSibling, cell2);
+      assert.equal(cell2.previousSibling, cell1);
+      assert.equal(cell2.previousElementSibling, cell1);
+    });
+
+  });
+
 </script>
 
 </body>

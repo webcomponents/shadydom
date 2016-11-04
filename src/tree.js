@@ -59,6 +59,40 @@ export let tree = {
       //tree.Composed.saveParentNode(node);
     }
     tree.Composed.saveChildNodes(node);
+  },
+
+  // Used to detect whether a given node should only
+  // use native properties and methods to query
+  // their children. For instance, if the element is not 
+  // valid for attaching a shadow root, or if the element does not
+  // allow flow content (and thus does not allow <slot> elements.)
+  nativeChildrenOnly(node) {
+    if (node.__dom.nativeChildrenOnly !== undefined) {
+      return node.__dom.nativeChildrenOnly;
+    }
+
+    return node.__dom.nativeChildrenOnly = 
+      node instanceof HTMLTableElement || // <table>
+      node instanceof HTMLTableColElement || // <colgroup>, <col>
+      node instanceof HTMLTableSectionElement || // <thead>, <tbody>, <tfoot>
+      node instanceof HTMLTableRowElement || // <tr>
+      false;
+  },
+
+  // Used to detect whether a given node should only
+  // use native properties and methods to query their parent.
+  nativeParentOnly(node) {
+    if (node.__dom.nativeParentOnly !== undefined) {
+      return node.__dom.nativeParentOnly;
+    }
+
+    return node.__dom.nativeParentOnly = 
+      node instanceof HTMLTableCaptionElement || // <caption>
+      node instanceof HTMLTableColElement || // <colgroup>, <col>
+      node instanceof HTMLTableSectionElement || // <thead>, <tbody>, <tfoot>
+      node instanceof HTMLTableRowElement || // <tr>
+      node instanceof HTMLTableCellElement || // <th>, <td>
+      false;
   }
 
 };
