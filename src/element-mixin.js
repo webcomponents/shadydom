@@ -608,7 +608,7 @@ Object.defineProperties(FragmentMixin, {
     },
     set(text) {
       mixinImpl.clearNode(this);
-      if (text) {
+      if (text || text === 0 || text !== text) {
         this.appendChild(document.createTextNode(text));
       }
     },
