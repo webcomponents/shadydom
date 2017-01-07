@@ -658,7 +658,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     assert.equal(ShadyDOM.nativeTree.children(b.firstElementChild).length, 4, 'deep copy has incorrect composed children');
   });
 
-  test('importNode shallow', function() {
+  test.skip('importNode shallow', function() {
     var a = document.createElement('div');
     a.innerHTML = '<x-clonate><span>1</span><span>2</span></x-clonate>';
     document.body.appendChild(a);
@@ -677,7 +677,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     assert.equal(ShadyDOM.nativeTree.children(b).length, 2, 'shallow import has incorrect composed children');
   });
 
-  test('importNode deep', function() {
+  test.skip('importNode deep', function() {
     var a = document.createElement('div');
     a.innerHTML = '<x-clonate><span>1</span><span>2</span></x-clonate>';
     document.body.appendChild(a);

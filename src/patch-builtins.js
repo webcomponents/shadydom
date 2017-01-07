@@ -174,10 +174,15 @@ export function patchBuiltins() {
   // patch this only on the instance because (1) main document is only
   // one we care about; (2) better compatibility with other polyfills
   // that may also patch the instance (e.g. CE)
-  let previousImportNode = document.importNode;
-  document.importNode = function(node, deep) {
-    return mutation.importNode(node, deep, previousImportNode);
-  }
+  //
+  // TODO(sorvell):Disabling importNode patching pending resolution of
+  // https://github.com/webcomponents/shadydom/issues/68.
+  //
+  // let previousImportNode = document.importNode;
+  // document.importNode = function(node, deep) {
+  //   return mutation.importNode(node, deep, previousImportNode);
+  // }
+  //
   if (window.HTMLSlotElement) {
     patchBuiltin(window.HTMLSlotElement.prototype, slotMixin);
   }
