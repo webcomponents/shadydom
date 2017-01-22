@@ -51,6 +51,9 @@ export function childNodes(node) {
     nodes.push(n);
     n = nodeWalker.nextSibling();
   }
+  nodes.item = function(index){
+    return nodes[index];
+  };
   return nodes;
 }
 
