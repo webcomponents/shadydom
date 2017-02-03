@@ -148,12 +148,26 @@ let eventMixin = {
   }
 
 };
+function createEvent(type, Base, options) {
+	return new Base(type, options);	
+}
 
-function mixinComposedFlag(Base) {
-  // NOTE: avoiding use of `class` here so that transpiled output does not
-  // try to do `Base.call` with a dom construtor.
-  let klazz = function(type, options) {
-    let event = new Base(type, options);
+function createCustomEvent(type, CustomEventBase, options) {
+	try {
+		return createEvent(type, CustomEventBase, options);	
+	} catch (e) {
+		let evt = document.createEvent('Event');
+		options = options || { bubbles: false, cancelable: false, detail: undefined };
+		evt.initEvent(type, options.bubbles, options.cancelable, options.detail);
+		return evt;
+	}
+}
+
+function mixinComposedFlag(Base, eventFactory) {
+    // NOTE: avoiding use of `class` here so that transpiled output does not
+    // try to do `Base.call` with a dom construtor.
+    let klazz = function(type, options) {
+	let event = eventFactory(type, Base, options);
     event.__composed = options && Boolean(options.composed);
     return event;
   }
@@ -359,9 +373,9 @@ function activateFocusEventOverrides() {
   }
 }
 
-let PatchedEvent = mixinComposedFlag(window.Event);
-let PatchedCustomEvent = mixinComposedFlag(window.CustomEvent);
-let PatchedMouseEvent = mixinComposedFlag(window.MouseEvent);
+let PatchedEvent = mixinComposedFlag(window.Event, createEvent);
+let PatchedCustomEvent = mixinComposedFlag(window.CustomEvent, createCustomEvent);
+let PatchedMouseEvent = mixinComposedFlag(window.MouseEvent, createEvent);
 
 export function patchEvents() {
   window.Event = PatchedEvent;
