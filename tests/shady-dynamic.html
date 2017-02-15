@@ -440,13 +440,26 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     assert.equal(testElement.shadowRoot.querySelector('#added2'), s);
   });
 
+  test('insertBefore self (light)', function() {
+    var rere = testElement.shadowRoot.querySelector('x-rereproject');
+    var ref = testElement.shadowRoot.querySelector('#added');
+    var s = document.createElement('span');
+    s.id = 'added3';
+    s.textContent = 'Added3';
+    rere.insertBefore(s, ref);
+    rere.insertBefore(s, s);
+    assert.equal(testElement.shadowRoot.querySelector('#added3'), s);
+  });
+
   test('removeChild (light)', function() {
     var added = testElement.shadowRoot.querySelector('#added');
     var added2 = testElement.shadowRoot.querySelector('#added2');
+    var added3 = testElement.shadowRoot.querySelector('#added3');
     var rere = testElement.shadowRoot.querySelector('x-rereproject');
-    assert.equal(testElement.shadowRoot.querySelectorAll('*').length, 4);
+    assert.equal(testElement.shadowRoot.querySelectorAll('*').length, 5);
     rere.removeChild(added);
     rere.removeChild(added2);
+    rere.removeChild(added3);
     assert.equal(testElement.shadowRoot.querySelectorAll('*').length, 2);
   });
 
