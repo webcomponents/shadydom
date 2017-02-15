@@ -348,6 +348,9 @@ export function insertBefore(parent, node, ref_node) {
         'of this node');
     }
   }
+  if (node === ref_node) {
+    return node;
+  }
   // remove node from its current position iff it's in a tree.
   if (node.nodeType !== Node.DOCUMENT_FRAGMENT_NODE) {
     let parent = getProperty(node, 'parentNode');
