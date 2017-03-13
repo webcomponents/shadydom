@@ -3,7 +3,7 @@
   "description": "shadydom.js",
   "main": "shadydom.min.js",
   "authors": [
-    "The Polymer Authors"
+    "The Polymer Project Authors (https://polymer.github.io/AUTHORS.txt)"
   ],
   "license": "BSD-3-Clause",
   "keywords": [
