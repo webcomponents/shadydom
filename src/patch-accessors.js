@@ -234,7 +234,7 @@ let InsideAccessors = {
      * @this {HTMLElement}
      */
     set(text) {
-      if (this.nodeType !== Node.ELEMENT_NODE) {
+      if (this.nodeType !== Node.ELEMENT_NODE && this.nodeType !== Node.DOCUMENT_FRAGMENT_NODE) {
         // TODO(sorvell): can't do this if patch nodeValue.
         this.nodeValue = text;
       } else {
