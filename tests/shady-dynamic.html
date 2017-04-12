@@ -977,6 +977,18 @@ suite('Accessors', function() {
     assert.equal(commentNode.textContent, 'bar', 'text content setter on commentnode incorrect');
   });
 
+  test('setting textContent to an empty string removes existing content', function() {
+    var fragment = document.createDocumentFragment();
+    var d = document.createElement('div');
+    fragment.appendChild(d);
+    ShadyDOM.flush();
+    assert.equal(ShadyDOM.nativeTree.childNodes(fragment).length, 1, 'documentFragment.appendChild is incorrect');
+
+    fragment.textContent = "";
+    ShadyDOM.flush();
+    assert.equal(ShadyDOM.nativeTree.childNodes(fragment).length, 0, 'textContent setter on document fragment is incorrect');
+  });
+
   test('innerHTML', function() {
     var testElement = document.createElement('x-project');
     testElement.innerHTML = '<div>Hello World</div><div>2</div><div>3</div>';
