@@ -57,11 +57,14 @@ ShadyRoot.prototype._init = function(host) {
   // state flags
   this._renderPending = false;
   this._hasRendered = false;
-  this._changePending = false;
+  this._insertionPoints = [];
   this._distributor = new Distributor(this);
-  this.update();
+  // fast path initial render: remove existing physical dom.
+  let c$ = childNodes(host);
+  for (let i=0, l=c$.length; i < l; i++) {
+    removeChild.call(host, c$[i])
+  }
 }
-
 
 // async render
 ShadyRoot.prototype.update = function() {
@@ -99,6 +102,11 @@ ShadyRoot.prototype._rendererForHost = function() {
   }
 }
 
+ShadyRoot.prototype.forceRender = function() {
+  this._renderPending = true;
+  this.render();
+}
+
 ShadyRoot.prototype.render = function() {
   if (this._renderPending) {
     this._getRenderRoot()['_render']();
@@ -108,78 +116,23 @@ ShadyRoot.prototype.render = function() {
 // NOTE: avoid renaming to ease testability.
 ShadyRoot.prototype['_render'] = function() {
   this._renderPending = false;
-  this._changePending = false;
-  if (!this._skipUpdateInsertionPoints) {
-    this.updateInsertionPoints();
-  } else if (!this._hasRendered) {
-    this.__insertionPoints = [];
-  }
-  this._skipUpdateInsertionPoints = false;
-  // TODO(sorvell): can add a first render optimization here
-  // to use if there are no insertion points
-  // 1. clear host node of composed children
-  // 2. appendChild the shadowRoot itself or (more robust) its logical children
-  // NOTE: this didn't seem worth it in perf testing
-  // but not ready to delete this info.
-  // logical
-  this.distribute();
-  // physical
-  this.compose();
+  this._distribute();
+  this._compose();
   this._hasRendered = true;
 }
 
-ShadyRoot.prototype.forceRender = function() {
-  this._renderPending = true;
-  this.render();
-}
-
-ShadyRoot.prototype.distribute = function() {
+ShadyRoot.prototype._distribute = function() {
   let dirtyRoots = this._distributor.distribute();
   for (let i=0; i<dirtyRoots.length; i++) {
     dirtyRoots[i]['_render']();
   }
 }
 
-ShadyRoot.prototype.updateInsertionPoints = function() {
-  let i$ = this._insertionPoints;
-  // if any insertion points have been removed, clear their distribution info
-  if (i$) {
-    for (let i=0, c; i < i$.length; i++) {
-      c = i$[i];
-      if (c.getRootNode() !== this) {
-        this._distributor.clearAssignedSlots(c);
-      }
-    }
-  }
-  i$ = this._insertionPoints = this._distributor.getInsertionPoints();
-  // ensure insertionPoints's and their parents have logical dom info.
-  // save logical tree info
-  // a. for shadyRoot
-  // b. for insertion points (fallback)
-  // c. for parents of insertion points
-  for (let i=0, c; i < i$.length; i++) {
-    c = i$[i];
-    c.__shady = c.__shady || {};
-    recordChildNodes(c);
-    recordChildNodes(c.parentNode);
-  }
-}
-
-ShadyRoot.prototype.compose = function() {
-  // compose self
-  // note: it's important to mark this clean before distribution
-  // so that attachment that provokes additional distribution (e.g.
-  // adding something to your parentNode) works
-  this._composeTree();
-  // TODO(sorvell): See fast paths here in Polymer v1
-  // (these seem unnecessary)
-}
-
 // Reify dom such that it is at its correct rendering position
 // based on logical distribution.
-ShadyRoot.prototype._composeTree = function() {
+ShadyRoot.prototype._compose = function() {
   this._updateChildNodes(this.host, this._composeNode(this.host));
-  let p$ = this._getInsertionPoints();
+  let p$ = this._insertionPoints;
   for (let i=0, l=p$.length, p, parent; (i<l) && (p=p$[i]); i++) {
     parent = p.parentNode;
     if ((parent !== this.host) && (parent !== this)) {
@@ -199,7 +152,7 @@ ShadyRoot.prototype._composeNode = function(node) {
         (child.__shady.distributedNodes = []);
       for (let j = 0; j < distributedNodes.length; j++) {
         let distributedNode = distributedNodes[j];
-        if (this.isFinalDestination(child, distributedNode)) {
+        if (this._isFinalDestination(child, distributedNode)) {
           children.push(distributedNode);
         }
       }
@@ -210,7 +163,7 @@ ShadyRoot.prototype._composeNode = function(node) {
   return children;
 }
 
-ShadyRoot.prototype.isFinalDestination = function(insertionPoint, node) {
+ShadyRoot.prototype._isFinalDestination = function(insertionPoint, node) {
   return this._distributor.isFinalDestination(
     insertionPoint, node);
 }
@@ -239,25 +192,40 @@ ShadyRoot.prototype._updateChildNodes = function(container, children) {
     for (let j=s.index, n; j < s.index + s.addedCount; j++) {
       n = children[j];
       insertBefore.call(container, n, next);
-      // TODO(sorvell): is this splice strictly needed?
-      composed.splice(j, 0, n);
     }
   }
 }
 
-ShadyRoot.prototype.getInsertionPointTag = function() {
-  return this._distributor.insertionPointTag;
-}
-
-ShadyRoot.prototype.hasInsertionPoint = function() {
-  return Boolean(this._insertionPoints && this._insertionPoints.length);
-}
-
-ShadyRoot.prototype._getInsertionPoints = function() {
-  if (!this._insertionPoints) {
-    this.updateInsertionPoints();
+ShadyRoot.prototype._updateInsertionPoints = function() {
+  let i$ = this._insertionPoints;
+  // if any insertion points have been removed, clear their distribution info
+  for (let i=0; i < i$.length; i++) {
+    let c = i$[i];
+    if (c.getRootNode() !== this) {
+      this._distributor.clearAssignedSlots(c);
+      this._distributor.clearAssignedNodes(c);
+    }
   }
-  return this._insertionPoints;
+  i$ = this._insertionPoints = this._distributor.getInsertionPoints();
+  // ensure insertionPoints's and their parents have logical dom info.
+  // save logical tree info
+  // a. for shadyRoot
+  // b. for insertion points (fallback)
+  // c. for parents of insertion points
+  for (let i=0, c; i < i$.length; i++) {
+    c = i$[i];
+    c.__shady = c.__shady || {};
+    recordChildNodes(c);
+    recordChildNodes(c.parentNode);
+  }
+}
+
+ShadyRoot.prototype._hasInsertionPoint = function() {
+  return Boolean(this._insertionPoints.length);
+}
+
+ShadyRoot.prototype.getElementById = function(id) {
+  return this.querySelector(`#${id}`);
 }
 
 ShadyRoot.prototype.addEventListener = function(type, fn, optionsOrCapture) {

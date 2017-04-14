@@ -212,6 +212,36 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     });
   </script>
 
+  <template id="innerTemplate"><slot></slot></template>
+
+  <template id="outerTemplate"><inner-element><slot></slot></inner-element></template>
+
+  <script>
+  (function() {
+    class InnerElement extends HTMLElement {
+      constructor() {
+        super();
+        const clone = document.importNode(innerTemplate.content, true);
+        this.attachShadow({ mode: 'open' });
+        this.shadowRoot.appendChild(clone);
+      }
+    }
+    customElements.define('inner-element', InnerElement);
+
+    class OuterElement extends HTMLElement {
+      constructor() {
+        super();
+        const clone = document.importNode(outerTemplate.content, true);
+        this.attachShadow({ mode: 'open' });
+        this.shadowRoot.appendChild(clone);
+      }
+    }
+    customElements.define('outer-element', OuterElement);
+
+  })();
+  </script>
+
+
 <x-test></x-test>
 
 <div class="accessors">
@@ -249,6 +279,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <x-outer>
   <button>click me</button>
 </x-outer>
+
+<outer-element>hello</outer-element>
 
 <script>
   defineTestElement('x-stamps-peer', function() {
@@ -769,6 +801,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     assert.equal(assignedNodes[0].localName, 'x-stamps-peer');
     assert.equal(assignedNodes[1].id, 'peer');
   });
+
+  test('shadowRoot.appendChild element with slot child and shadowRoot with slot pending distribution', function() {
+    var outerElement = document.querySelector('outer-element');
+    assert.equal(ShadyDOM.nativeTree.innerHTML(outerElement), '<inner-element>hello</inner-element>');
+    var test = outerElement.firstChild;
+    var outerSlot = outerElement.shadowRoot.querySelector('slot');
+    var innerElement = outerElement.shadowRoot.querySelector('inner-element');
+    var innerSlot = innerElement.shadowRoot.querySelector('slot');
+    assert.deepEqual(outerSlot.assignedNodes(), [test]);
+    assert.deepEqual(innerSlot.assignedNodes(), [outerSlot]);
+  })
 
 });
 

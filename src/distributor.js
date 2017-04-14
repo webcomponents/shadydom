@@ -10,7 +10,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 'use strict';
 
-import {removeChild} from './native-methods'
+import {removeChild, dispatchEvent} from './native-methods'
 import {parentNode} from './native-tree'
 
 // NOTE: normalize event contruction where necessary (IE11)
@@ -38,7 +38,7 @@ export default class {
   }
 
   distribute() {
-    if (this.root.hasInsertionPoint()) {
+    if (this.root._hasInsertionPoint()) {
       return this.distributePool(this.root, this.collectPool());
     }
     return [];
@@ -60,7 +60,7 @@ export default class {
   // array where applicable.
   distributePool(node, pool) {
     let dirtyRoots = [];
-    let p$ = this.root._getInsertionPoints();
+    let p$ = this.root._insertionPoints;
     for (let i=0, l=p$.length, p; (i<l) && (p=p$[i]); i++) {
       this.distributeInsertionPoint(p, pool);
       // provoke redistribution on insertion point parents
@@ -69,7 +69,7 @@ export default class {
       // only get logical parent.
       let parent = p.parentNode;
       let root = parent && parent.__shady && parent.__shady.root
-      if (root && root.hasInsertionPoint()) {
+      if (root && root._hasInsertionPoint()) {
         dirtyRoots.push(root);
       }
     }
@@ -129,9 +129,6 @@ export default class {
     // we're already dirty if a node was newly added to the slot
     // and we're also dirty if the assigned count decreased.
     if (prevAssignedNodes) {
-      // TODO(sorvell): the tracking of previously assigned slots
-      // could instead by done with a Set and then we could
-      // avoid needing to iterate here to clear the info.
       for (let i=0; i < prevAssignedNodes.length; i++) {
         prevAssignedNodes[i].__shady._prevAssignedSlot = null;
       }
@@ -139,7 +136,8 @@ export default class {
         needsSlotChange = true;
       }
     }
-    this.setDistributedNodesOnInsertionPoint(insertionPoint);
+    let list = insertionPoint.__shady.distributedNodes = [];
+    this.addDistributedNodes(list, insertionPoint);
     if (needsSlotChange) {
       this._fireSlotChange(insertionPoint);
     }
@@ -163,6 +161,20 @@ export default class {
     }
   }
 
+  clearAssignedNodes(slot) {
+    let c$ = slot.__shady.distributedNodes;
+    if (!c$) {
+      return;
+    }
+    for (let i=0; i<c$.length; i++) {
+      let node = c$[i];
+      let parent = parentNode(node);
+      if (parent) {
+        removeChild.call(parent, node);
+      }
+    }
+  }
+
   matchesInsertionPoint(node, insertionPoint) {
     let slotName = insertionPoint.getAttribute('name');
     slotName = slotName ? slotName.trim() : '';
@@ -176,19 +188,13 @@ export default class {
     child.__shady.assignedSlot = insertionPoint;
   }
 
-  setDistributedNodesOnInsertionPoint(insertionPoint) {
+  addDistributedNodes(list, insertionPoint) {
     let n$ = insertionPoint.__shady.assignedNodes;
-    insertionPoint.__shady.distributedNodes = [];
-    for (let i=0, n; (i<n$.length) && (n=n$[i]) ; i++) {
+    for (let i=0, n; (i<n$.length) && (n=n$[i]); i++) {
       if (this.isInsertionPoint(n)) {
-        let d$ = n.__shady.distributedNodes;
-        if (d$) {
-          for (let j=0; j < d$.length; j++) {
-            insertionPoint.__shady.distributedNodes.push(d$[j]);
-          }
-        }
+        this.addDistributedNodes(list, n);
       } else {
-        insertionPoint.__shady.distributedNodes.push(n$[i]);
+        list.push(n$[i]);
       }
     }
   }
@@ -197,7 +203,7 @@ export default class {
     // NOTE: cannot bubble correctly here so not setting bubbles: true
     // Safari tech preview does not bubble but chrome does
     // Spec says it bubbles (https://dom.spec.whatwg.org/#mutation-observers)
-    insertionPoint.dispatchEvent(new NormalizedEvent('slotchange'));
+    dispatchEvent.call(insertionPoint, new NormalizedEvent('slotchange'));
     if (insertionPoint.__shady.assignedSlot) {
       this._fireSlotChange(insertionPoint.__shady.assignedSlot);
     }
