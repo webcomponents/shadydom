@@ -179,13 +179,9 @@ ShadyRoot.prototype._distributeNodeToSlot = function(node, slot) {
     node.__shady.assignedSlot = slot;
   } else {
     node.__shady.assignedSlot = undefined;
-    // remove undistributed elements from physical dom.
-    let parent = parentNode(node);
-    if (parent) {
-      removeChild.call(parent, node);
-    }
   }
   if (oldSlot !== node.__shady.assignedSlot) {
+    // TODO(sorvell): add test to verify this is needed.
     if (oldSlot) {
       oldSlot.__shady.dirty = true;
     }
@@ -319,7 +315,7 @@ ShadyRoot.prototype._addSlots = function(slots) {
     slot.__shady = slot.__shady || {};
     recordChildNodes(slot);
     recordChildNodes(slot.parentNode);
-    let name = slot.name || CATCHALL_NAME;
+    let name = this._nameForSlot(slot);
     // TODO(sorvell): add tests to verify slots add/removing slots
     // with the same name (or catchall)
     let slotsForName = this._extractSlotsOfName(name);
@@ -333,11 +329,15 @@ ShadyRoot.prototype._addSlots = function(slots) {
   this._updateSlotMap();
 }
 
+ShadyRoot.prototype._nameForSlot = function(slot) {
+  return slot.name || slot.getAttribute('name') || CATCHALL_NAME;
+}
+
 ShadyRoot.prototype._extractSlotsOfName = function(name) {
   let slots;
   for (let i=0; i < this._slotList.length; i++) {
     let slot = this._slotList[i];
-    let n = slot.name || CATCHALL_NAME;
+    let n = this._nameForSlot(slot);
     if (n == name) {
       this._slotList.splice(i, 1);
       slots = slots || [];
@@ -355,20 +355,17 @@ ShadyRoot.prototype._sortSlots = function(slots) {
       let nA = listA[i];
       let nB = listB[i];
       if (nA !== nB) {
-        let commonChildNodes = Array.from(nA.parentNode.childNodes);
-        let iA = commonChildNodes.indexOf(nA);
-        let iB = commonChildNodes.indexOf(nB);
-        return iA < iB;
+        let c$ = Array.from(nA.parentNode.childNodes);
+        return c$.indexOf(nA) < c$.indexOf(nB);
       }
     }
-    return 0;
   });
 }
 
 function ancestorList(node) {
   let ancestors = [];
   do {
-    ancestors.push(node);
+    ancestors.unshift(node);
   } while ((node = node.parentNode));
   return ancestors;
 }
@@ -407,7 +404,7 @@ ShadyRoot.prototype._updateSlotMap = function() {
   this._slotMap = {};
   for (let i=0; i<this._slotList.length; i++) {
     let slot = this._slotList[i];
-    let name = slot.name || '__catchall';
+    let name = this._nameForSlot(slot);
     if (!this._slotMap[name]) {
       this._slotMap[name] = slot;
     }
