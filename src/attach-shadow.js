@@ -330,7 +330,7 @@ ShadyRoot.prototype._addSlots = function(slots) {
 }
 
 ShadyRoot.prototype._nameForSlot = function(slot) {
-  return slot.name || slot.getAttribute('name') || CATCHALL_NAME;
+  return slot['name'] || slot.getAttribute('name') || CATCHALL_NAME;
 }
 
 ShadyRoot.prototype._extractSlotsOfName = function(name) {
