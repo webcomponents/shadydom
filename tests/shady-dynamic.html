@@ -300,12 +300,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     }
   }
 
-  function forceRender(element) {
-    if (element.shadyRoot) {
-      element.shadyRoot.render();
-    }
-  }
-
   function createEnabledElement(tag) {
     var e = document.createElement(tag);
     document.body.appendChild(e);
@@ -1271,11 +1265,11 @@ suite('renders roots', function() {
     el = document.createElement('x-rereproject');
     document.body.appendChild(el);
     ShadyDOM.flush();
-    sinon.spy(el.shadowRoot, '_render');
+    sinon.spy(el.shadowRoot, '_renderRoot');
     p = el.shadowRoot.querySelector('x-reproject');
-    sinon.spy(p.shadowRoot, '_render');
+    sinon.spy(p.shadowRoot, '_renderRoot');
     c = p.shadowRoot.querySelector('x-project');
-    sinon.spy(c.shadowRoot, '_render');
+    sinon.spy(c.shadowRoot, '_renderRoot');
   });
 
   teardown(function() {
@@ -1285,42 +1279,42 @@ suite('renders roots', function() {
   test('renders all roots that are dirtied via distribution', function() {
     el.appendChild(document.createElement('div'));
     ShadyDOM.flush();
-    assert.equal(el.shadowRoot._render.callCount, 1);
-    assert.equal(p.shadowRoot._render.callCount, 1);
-    assert.equal(c.shadowRoot._render.callCount, 1);
+    assert.equal(el.shadowRoot._renderRoot.callCount, 1);
+    assert.equal(p.shadowRoot._renderRoot.callCount, 1);
+    assert.equal(c.shadowRoot._renderRoot.callCount, 1);
   });
 
   test('renders only roots that are dirty', function() {
     c.appendChild(document.createElement('div'));
     ShadyDOM.flush();
-    assert.equal(el.shadowRoot._render.callCount, 0);
-    assert.equal(p.shadowRoot._render.callCount, 0);
-    assert.equal(c.shadowRoot._render.callCount, 1);
+    assert.equal(el.shadowRoot._renderRoot.callCount, 0);
+    assert.equal(p.shadowRoot._renderRoot.callCount, 0);
+    assert.equal(c.shadowRoot._renderRoot.callCount, 1);
     p.appendChild(document.createElement('div'));
     ShadyDOM.flush();
-    assert.equal(el.shadowRoot._render.callCount, 0);
-    assert.equal(p.shadowRoot._render.callCount, 1);
-    assert.equal(c.shadowRoot._render.callCount, 2);
+    assert.equal(el.shadowRoot._renderRoot.callCount, 0);
+    assert.equal(p.shadowRoot._renderRoot.callCount, 1);
+    assert.equal(c.shadowRoot._renderRoot.callCount, 2);
     el.appendChild(document.createElement('div'));
     ShadyDOM.flush();
-    assert.equal(el.shadowRoot._render.callCount, 1);
-    assert.equal(p.shadowRoot._render.callCount, 2);
-    assert.equal(c.shadowRoot._render.callCount, 3);
+    assert.equal(el.shadowRoot._renderRoot.callCount, 1);
+    assert.equal(p.shadowRoot._renderRoot.callCount, 2);
+    assert.equal(c.shadowRoot._renderRoot.callCount, 3);
   });
 
   test('renders oldest dirty root', function() {
     c.appendChild(document.createElement('div'));
     p.appendChild(document.createElement('div'));
     ShadyDOM.flush();
-    assert.equal(el.shadowRoot._render.callCount, 0);
-    assert.equal(p.shadowRoot._render.callCount, 1);
-    assert.equal(c.shadowRoot._render.callCount, 1);
+    assert.equal(el.shadowRoot._renderRoot.callCount, 0);
+    assert.equal(p.shadowRoot._renderRoot.callCount, 1);
+    assert.equal(c.shadowRoot._renderRoot.callCount, 1);
     el.appendChild(document.createElement('div'));
     p.appendChild(document.createElement('div'));
     ShadyDOM.flush();
-    assert.equal(el.shadowRoot._render.callCount, 1);
-    assert.equal(p.shadowRoot._render.callCount, 2);
-    assert.equal(c.shadowRoot._render.callCount, 2);
+    assert.equal(el.shadowRoot._renderRoot.callCount, 1);
+    assert.equal(p.shadowRoot._renderRoot.callCount, 2);
+    assert.equal(c.shadowRoot._renderRoot.callCount, 2);
   });
 
 

@@ -39,15 +39,17 @@ export function insertBefore(parent, node, ref_node) {
     return node;
   }
   // remove from existing location
-  removeNodeFromOldParent(node);
+  if (node.parentNode) {
+    node.parentNode.removeChild(node);
+  }
   // add to new parent
   let ownerRoot = utils.ownerShadyRootForNode(parent);
-  let slotAdded = ownerRoot && nodeContainsSlot(node);
+  let slotsAdded = ownerRoot && findContainedSlots(node);
   if (parent.__shady && parent.__shady.firstChild !== undefined) {
     logicalTree.recordInsertBefore(node, parent, ref_node);
   }
-  if (ownerRoot && (parent.localName === 'slot' || slotAdded)) {
-    ownerRoot.update();
+  if (ownerRoot && (parent.localName === 'slot' || slotsAdded)) {
+    ownerRoot._asyncRender();
   }
   let handled = distributeNodeIfNeeded(parent) || parent.__shady.root;
   if (!handled) {
@@ -69,27 +71,24 @@ export function insertBefore(parent, node, ref_node) {
   }
   scheduleObserver(parent, node);
   // with insertion complete, can safely update insertion points.
-  if (slotAdded) {
-    ownerRoot._updateInsertionPoints();
+  if (slotsAdded) {
+    ownerRoot._addSlots(slotsAdded);
   }
   return node;
 }
 
-function removeNodeFromOldParent(node) {
-  // remove node from its current position iff it's in a tree.
-  let logicalParent = node.__shady && node.__shady.parentNode;
-  if (logicalParent) {
-    scheduleObserver(logicalParent, null, node);
-    return removeNode(node);
-  } else if (node.parentNode) {
-    nativeMethods.removeChild.call(node.parentNode, node);
-    removeOwnerShadyRoot(node);
+function findContainedSlots(node) {
+  if (!node['__noInsertionPoint']) {
+    let slots;
+    if (node.localName === 'slot') {
+      slots = [node];
+    } else if (node.querySelectorAll) {
+      slots = node.querySelectorAll('slot');
+    }
+    if (slots && slots.length) {
+      return slots;
+    }
   }
-}
-
-function nodeContainsSlot(node) {
-  return !node['__noInsertionPoint'] && node.querySelector &&
-    (node.localName === 'slot' || node.querySelector('slot'));
 }
 
 /**
@@ -101,7 +100,22 @@ export function removeChild(parent, node) {
     throw Error('The node to be removed is not a child of this node: ' +
       node);
   }
-  if (!removeNode(node)) {
+  let logicalParent = node.__shady && node.__shady.parentNode;
+  let ownerRoot = utils.ownerShadyRootForNode(node);
+  let handled, removingInsertionPoint;
+  if (logicalParent) {
+    handled = distributeNodeIfNeeded(node.parentNode);
+    logicalTree.recordRemoveChild(node, logicalParent);
+  }
+  removeOwnerShadyRoot(node);
+  if (ownerRoot) {
+    let changeSlotContent = logicalParent && logicalParent.localName === 'slot';
+    removingInsertionPoint = ownerRoot._removeContainerSlots(node);
+    if (removingInsertionPoint || changeSlotContent) {
+      ownerRoot._asyncRender();
+    }
+  }
+  if (!handled) {
     // if removing from a shadyRoot, remove form host instead
     let container = utils.isShadyRoot(parent) ?
       parent.host :
@@ -115,61 +129,6 @@ export function removeChild(parent, node) {
   }
   scheduleObserver(parent, null, node);
   return node;
-}
-
-/**
- * Try to remove node: update logical info and perform distribution iff
- * needed. Return true if the removal has been handled.
- * note that it's possible for both the node's host and its parent
- * to require distribution... both cases are handled here.
- * @param {Node} node
- * @return {boolean}
- */
-function removeNode(node) {
-  let logicalParent = node.__shady && node.__shady.parentNode;
-  let ownerRoot = utils.ownerShadyRootForNode(node);
-  let handled;
-  if (logicalParent) {
-    handled = distributeNodeIfNeeded(node.parentNode);
-    logicalTree.recordRemoveChild(node, logicalParent);
-  }
-  removeOwnerShadyRoot(node);
-  if (ownerRoot) {
-    let changeSlotContent = logicalParent && logicalParent.localName === 'slot';
-    let removingInsertionPoint = nodeContainsRootInsertionPoint(ownerRoot, node);
-    if (removingInsertionPoint) {
-      // if there's no logical parent, we must remove the node here so that
-      // it's safe to call updateInsertionPoints (uses querySelector)
-      if (!logicalParent) {
-        nativeMethods.removeChild.call(node.parentNode, node);
-        handled = true;
-      }
-      ownerRoot._updateInsertionPoints();
-    }
-    if (removingInsertionPoint || changeSlotContent) {
-      ownerRoot.update();
-    }
-  }
-  return handled;
-}
-
-function nodeContainsRootInsertionPoint(root, node) {
-  let ip$ = root._insertionPoints;
-  for (let i=0; i<ip$.length; i++) {
-    let insertionPoint = ip$[i];
-    if (contains(node, insertionPoint)) {
-      return true;
-    }
-  }
-}
-
-function contains(container, node) {
-  while (node) {
-    if (node == container) {
-      return true;
-    }
-    node = node.parentNode;
-  }
 }
 
 function removeOwnerShadyRoot(node) {
@@ -205,7 +164,7 @@ function firstComposedNode(insertionPoint) {
 function distributeNodeIfNeeded(node) {
   let root = node && node.__shady && node.__shady.root;
   if (root && root._hasInsertionPoint()) {
-    root.update();
+    root._asyncRender();
     return true;
   }
 }
@@ -216,7 +175,9 @@ function distributeAttributeChange(node, name) {
   } else if (node.localName === 'slot' && name === 'name') {
     let root = utils.ownerShadyRootForNode(node);
     if (root) {
-      root.update();
+      root._removeSlot(node);
+      root._addSlots([node]);
+      root._asyncRender();
     }
   }
 }
@@ -308,7 +269,7 @@ function queryElement(node, matcher, halter, list) {
 export function renderRootNode(element) {
   var root = element.getRootNode();
   if (utils.isShadyRoot(root)) {
-    root.render();
+    root._render();
   }
 }
 
