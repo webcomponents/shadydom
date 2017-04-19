@@ -11,6 +11,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 'use strict';
 
 import * as utils from './utils'
+import {flush} from './flush'
+import * as nativeMethods from './native-methods'
 import * as mutation from './logical-mutation'
 import {ActiveElementAccessor, ShadowRootAccessor, patchAccessors} from './patch-accessors'
 import {addEventListener, removeEventListener} from './patch-events'
@@ -177,6 +179,14 @@ let elementMixin = utils.extendAll({
    */
   get assignedSlot() {
     return getAssignedSlot(this);
+  },
+
+  /**
+   * @this {HTMLElement}
+   */
+  dispatchEvent(event) {
+    flush();
+    return nativeMethods.dispatchEvent.call(this, event);
   }
 
 }, fragmentMixin, slotMixin);
@@ -189,7 +199,15 @@ let documentMixin = utils.extendAll({
    */
   importNode(node, deep) {
     return mutation.importNode(node, deep);
+  },
+
+  /**
+   * @this {Document}
+   */
+  getElementById(id) {
+    return this.querySelector(`#${id}`);
   }
+
 }, fragmentMixin);
 
 Object.defineProperties(documentMixin, {
@@ -228,7 +246,6 @@ function patchBuiltin(proto, obj) {
     }
   }
 }
-
 
 // Apply patches to builtins (e.g. Element.prototype). Some of these patches
 // can be done unconditionally (mostly methods like

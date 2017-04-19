@@ -212,6 +212,36 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     });
   </script>
 
+  <template id="innerTemplate"><slot></slot></template>
+
+  <template id="outerTemplate"><inner-element><slot></slot></inner-element></template>
+
+  <script>
+  (function() {
+    class InnerElement extends HTMLElement {
+      constructor() {
+        super();
+        const clone = document.importNode(innerTemplate.content, true);
+        this.attachShadow({ mode: 'open' });
+        this.shadowRoot.appendChild(clone);
+      }
+    }
+    customElements.define('inner-element', InnerElement);
+
+    class OuterElement extends HTMLElement {
+      constructor() {
+        super();
+        const clone = document.importNode(outerTemplate.content, true);
+        this.attachShadow({ mode: 'open' });
+        this.shadowRoot.appendChild(clone);
+      }
+    }
+    customElements.define('outer-element', OuterElement);
+
+  })();
+  </script>
+
+
 <x-test></x-test>
 
 <div class="accessors">
@@ -250,6 +280,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   <button>click me</button>
 </x-outer>
 
+<outer-element>hello</outer-element>
+
 <script>
   defineTestElement('x-stamps-peer', function() {
     var span = document.createElement('span');
@@ -265,12 +297,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   function updateRoot(element) {
     if (element.shadyRoot) {
       element.shadyRoot.update();
-    }
-  }
-
-  function forceRender(element) {
-    if (element.shadyRoot) {
-      element.shadyRoot.render();
     }
   }
 
@@ -301,7 +327,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     testElement = document.querySelector('x-test');
   });
 
-  test('querySelector (local)', function() {
+  test('shadowRoot.querySelector', function() {
     var projected = testElement.shadowRoot.querySelector('#projected');
     assert.equal(projected.textContent, 'projected');
     var p2 = testElement.querySelector('#projected');
@@ -314,7 +340,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     assert.equal(p.localName, 'x-project');
   });
 
-  test('querySelectorAll (local)', function() {
+  test('shadowRoot.querySelectorAll', function() {
     var rere = testElement.shadowRoot.querySelector('x-rereproject');
     var re = rere.shadowRoot.querySelector('x-reproject');
     var p = re.shadowRoot.querySelector('x-project');
@@ -328,7 +354,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     assert.equal(pList.length, 1);
   });
 
-  test('querySelector (light)', function() {
+  test('shadowRoot.getElementById', function() {
+    var projected = testElement.shadowRoot.getElementById('projected');
+    assert.equal(projected.textContent, 'projected');
+  });
+
+  test('element.querySelector', function() {
     var projected = testElement.shadowRoot.querySelector('#projected');
     var rere = testElement.shadowRoot.querySelector('x-rereproject');
     var re = rere.shadowRoot.querySelector('x-reproject');
@@ -338,7 +369,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     assert(p.querySelector('slot'));
   });
 
-  test('querySelectorAll (light)', function() {
+  test('element.querySelectorAll', function() {
     var projected = testElement.shadowRoot.querySelector('#projected');
     var rere = testElement.shadowRoot.querySelector('x-rereproject');
     var re = rere.shadowRoot.querySelector('x-reproject');
@@ -348,9 +379,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     assert(p.querySelectorAll('slot').length, 1);
   });
 
-  test('querySelector document', function() {
+  test('document.querySelector', function() {
     assert.ok(document.querySelector('body'));
   });
+
+  test('document.getElementById', function() {
+    var p2 = document.getElementById('projected');
+    assert.isNull(p2);
+  })
 
   test('projection', function() {
     var projected = testElement.shadowRoot.querySelector('#projected');
@@ -629,9 +665,25 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     assert.equal(projected.parentNode, rere);
   });
 
+  test('parentElement', function() {
+    var rere = testElement.shadowRoot.querySelector('x-rereproject');
+    var projected = testElement.shadowRoot.querySelector('#projected');
+    assert.equal(testElement.parentElement, wrap(document.body));
+    assert.equal(projected.parentElement, rere);
+  });
+
   test('childNodes is an array', function() {
     var test = document.querySelector('x-test');
     assert.isTrue(Array.isArray(test.childNodes));
+  });
+
+  test('childElementCount', function() {
+    var test = document.querySelector('x-test');
+    assert.equal(test.childElementCount, 0);
+    var rere = test.shadowRoot.querySelector('x-rereproject');
+    assert.equal(rere.childElementCount, 1);
+    var projected = test.shadowRoot.querySelector('#projected');
+    assert.equal(projected.childElementCount, 0);
   });
 
   test('cloneNode shallow', function() {
@@ -744,6 +796,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     assert.equal(assignedNodes[1].id, 'peer');
   });
 
+  test('shadowRoot.appendChild element with slot child and shadowRoot with slot pending distribution', function() {
+    var outerElement = document.querySelector('outer-element');
+    assert.equal(ShadyDOM.nativeTree.innerHTML(outerElement), '<inner-element>hello</inner-element>');
+    var test = outerElement.firstChild;
+    var outerSlot = outerElement.shadowRoot.querySelector('slot');
+    var innerElement = outerElement.shadowRoot.querySelector('inner-element');
+    var innerSlot = innerElement.shadowRoot.querySelector('slot');
+    assert.deepEqual(outerSlot.assignedNodes(), [test]);
+    assert.deepEqual(innerSlot.assignedNodes(), [outerSlot]);
+  })
+
 });
 
 suite('insertBefore', function() {
@@ -766,6 +829,32 @@ suite('insertBefore', function() {
     e.shadowRoot.insertBefore(b, a);
     ShadyDOM.flush();
     assert.sameMembers(e.shadowRoot.childNodes, [s, b, a])
+  });
+
+  test('insertBefore multiple elements at different spots', function() {
+    var e = document.createElement('x-echo');
+    document.body.appendChild(e);
+    var d1 = document.createElement('div');
+    d1.id = 'd1';
+    var d2 = document.createElement('div');
+    d2.id = 'd2';
+    e.appendChild(d1);
+    e.appendChild(d2);
+    ShadyDOM.flush();
+    assert.equal(ShadyDOM.nativeTree.innerHTML(e), '<div id="d1"></div><div id="d2"></div>')
+    var d3 = document.createElement('div');
+    d3.id = 'd3';
+    var d4 = document.createElement('div');
+    d4.id = 'd4';
+    var d5 = document.createElement('div');
+    d5.id = 'd5';
+    e.insertBefore(d3, d1);
+    e.insertBefore(d4, d2);
+    e.appendChild(d5);
+    ShadyDOM.flush();
+    assert.equal(ShadyDOM.nativeTree.innerHTML(e),
+      '<div id="d3"></div><div id="d1"></div><div id="d4"></div><div id="d2"></div><div id="d5"></div>')
+    document.body.removeChild(e);
   });
 
   test('insertBefore while ref_node undistributed', function() {
@@ -1202,11 +1291,11 @@ suite('renders roots', function() {
     el = document.createElement('x-rereproject');
     document.body.appendChild(el);
     ShadyDOM.flush();
-    sinon.spy(el.shadowRoot, '_render');
+    sinon.spy(el.shadowRoot, '_renderRoot');
     p = el.shadowRoot.querySelector('x-reproject');
-    sinon.spy(p.shadowRoot, '_render');
+    sinon.spy(p.shadowRoot, '_renderRoot');
     c = p.shadowRoot.querySelector('x-project');
-    sinon.spy(c.shadowRoot, '_render');
+    sinon.spy(c.shadowRoot, '_renderRoot');
   });
 
   teardown(function() {
@@ -1216,42 +1305,42 @@ suite('renders roots', function() {
   test('renders all roots that are dirtied via distribution', function() {
     el.appendChild(document.createElement('div'));
     ShadyDOM.flush();
-    assert.equal(el.shadowRoot._render.callCount, 1);
-    assert.equal(p.shadowRoot._render.callCount, 1);
-    assert.equal(c.shadowRoot._render.callCount, 1);
+    assert.equal(el.shadowRoot._renderRoot.callCount, 1);
+    assert.equal(p.shadowRoot._renderRoot.callCount, 1);
+    assert.equal(c.shadowRoot._renderRoot.callCount, 1);
   });
 
   test('renders only roots that are dirty', function() {
     c.appendChild(document.createElement('div'));
     ShadyDOM.flush();
-    assert.equal(el.shadowRoot._render.callCount, 0);
-    assert.equal(p.shadowRoot._render.callCount, 0);
-    assert.equal(c.shadowRoot._render.callCount, 1);
+    assert.equal(el.shadowRoot._renderRoot.callCount, 0);
+    assert.equal(p.shadowRoot._renderRoot.callCount, 0);
+    assert.equal(c.shadowRoot._renderRoot.callCount, 1);
     p.appendChild(document.createElement('div'));
     ShadyDOM.flush();
-    assert.equal(el.shadowRoot._render.callCount, 0);
-    assert.equal(p.shadowRoot._render.callCount, 1);
-    assert.equal(c.shadowRoot._render.callCount, 2);
+    assert.equal(el.shadowRoot._renderRoot.callCount, 0);
+    assert.equal(p.shadowRoot._renderRoot.callCount, 1);
+    assert.equal(c.shadowRoot._renderRoot.callCount, 2);
     el.appendChild(document.createElement('div'));
     ShadyDOM.flush();
-    assert.equal(el.shadowRoot._render.callCount, 1);
-    assert.equal(p.shadowRoot._render.callCount, 2);
-    assert.equal(c.shadowRoot._render.callCount, 3);
+    assert.equal(el.shadowRoot._renderRoot.callCount, 1);
+    assert.equal(p.shadowRoot._renderRoot.callCount, 2);
+    assert.equal(c.shadowRoot._renderRoot.callCount, 3);
   });
 
   test('renders oldest dirty root', function() {
     c.appendChild(document.createElement('div'));
     p.appendChild(document.createElement('div'));
     ShadyDOM.flush();
-    assert.equal(el.shadowRoot._render.callCount, 0);
-    assert.equal(p.shadowRoot._render.callCount, 1);
-    assert.equal(c.shadowRoot._render.callCount, 1);
+    assert.equal(el.shadowRoot._renderRoot.callCount, 0);
+    assert.equal(p.shadowRoot._renderRoot.callCount, 1);
+    assert.equal(c.shadowRoot._renderRoot.callCount, 1);
     el.appendChild(document.createElement('div'));
     p.appendChild(document.createElement('div'));
     ShadyDOM.flush();
-    assert.equal(el.shadowRoot._render.callCount, 1);
-    assert.equal(p.shadowRoot._render.callCount, 2);
-    assert.equal(c.shadowRoot._render.callCount, 2);
+    assert.equal(el.shadowRoot._renderRoot.callCount, 1);
+    assert.equal(p.shadowRoot._renderRoot.callCount, 2);
+    assert.equal(c.shadowRoot._renderRoot.callCount, 2);
   });
 
 
