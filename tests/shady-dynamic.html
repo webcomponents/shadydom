@@ -831,6 +831,32 @@ suite('insertBefore', function() {
     assert.sameMembers(e.shadowRoot.childNodes, [s, b, a])
   });
 
+  test('insertBefore multiple elements at different spots', function() {
+    var e = document.createElement('x-echo');
+    document.body.appendChild(e);
+    var d1 = document.createElement('div');
+    d1.id = 'd1';
+    var d2 = document.createElement('div');
+    d2.id = 'd2';
+    e.appendChild(d1);
+    e.appendChild(d2);
+    ShadyDOM.flush();
+    assert.equal(ShadyDOM.nativeTree.innerHTML(e), '<div id="d1"></div><div id="d2"></div>')
+    var d3 = document.createElement('div');
+    d3.id = 'd3';
+    var d4 = document.createElement('div');
+    d4.id = 'd4';
+    var d5 = document.createElement('div');
+    d5.id = 'd5';
+    e.insertBefore(d3, d1);
+    e.insertBefore(d4, d2);
+    e.appendChild(d5);
+    ShadyDOM.flush();
+    assert.equal(ShadyDOM.nativeTree.innerHTML(e),
+      '<div id="d3"></div><div id="d1"></div><div id="d4"></div><div id="d2"></div><div id="d5"></div>')
+    document.body.removeChild(e);
+  });
+
   test('insertBefore while ref_node undistributed', function() {
     var e = document.createElement('div');
     document.body.appendChild(e);

@@ -298,13 +298,13 @@ ShadyRoot.prototype._updateChildNodes = function(container, children) {
     for (let j=s.index, n; j < s.index + s.addedCount; j++) {
       n = children[j];
       insertBefore.call(container, n, next);
-      // TODO(sorvell): add test showing this is needed.
       composed.splice(j, 0, n);
     }
   }
 }
 
 ShadyRoot.prototype._addSlots = function(slots) {
+  let slotNamesToSort;
   for (let i=0; i < slots.length; i++) {
     let slot = slots[i];
     // ensure insertionPoints's and their parents have logical dom info.
@@ -316,14 +316,19 @@ ShadyRoot.prototype._addSlots = function(slots) {
     recordChildNodes(slot);
     recordChildNodes(slot.parentNode);
     let name = this._nameForSlot(slot);
-    // TODO(sorvell): add tests to verify slots add/removing slots
+    if (this._slotMap && this._slotMap[name]) {
+      slotNamesToSort = slotNamesToSort || {};
+      slotNamesToSort[name] = true;
+    }
+    this._slotList.push(slot);
+  }
+  // TODO(sorvell): add tests to verify slots add/removing slots
     // with the same name (or catchall)
-    let slotsForName = this._extractSlotsOfName(name);
-    if (slotsForName) {
-      slotsForName.push(slot);
-      this._slotList.push(...this._sortSlots(slotsForName));
-    } else {
-      this._slotList.push(slot);
+  if (slotNamesToSort) {
+    for (let n in slotNamesToSort) {
+      let slotsForName = this._extractSlotsOfName(n);
+      let sorted = this._sortSlots(slotsForName);
+      this._slotList.push(...sorted);
     }
   }
   this._updateSlotMap();
@@ -340,6 +345,7 @@ ShadyRoot.prototype._extractSlotsOfName = function(name) {
     let n = this._nameForSlot(slot);
     if (n == name) {
       this._slotList.splice(i, 1);
+      i--;
       slots = slots || [];
       slots.push(slot);
     }
@@ -356,7 +362,7 @@ ShadyRoot.prototype._sortSlots = function(slots) {
       let nB = listB[i];
       if (nA !== nB) {
         let c$ = Array.from(nA.parentNode.childNodes);
-        return c$.indexOf(nA) < c$.indexOf(nB);
+        return c$.indexOf(nA) > c$.indexOf(nB);
       }
     }
   });
@@ -385,8 +391,9 @@ ShadyRoot.prototype._removeContainerSlots = function(container) {
     let slot = this._slotList[i];
     if (contains(container, slot)) {
       this._slotList.splice(i, 1);
+      this._removeAssignedNodes(slot);
+      i--;
       didRemove = true;
-      // TODO(sorvell): clear slot?
     }
   }
   this._updateSlotMap();
@@ -397,6 +404,18 @@ ShadyRoot.prototype._removeSlot = function(slot) {
   let i = this._slotList.indexOf(slot);
   if (i > -1) {
     this._slotList.splice(i, 1);
+    this._removeAssignedNodes(slot);
+  }
+}
+
+ShadyRoot.prototype._removeAssignedNodes = function(slot) {
+  let n$ = slot.assignedNodes({flatten: true});
+  for (let i=0; i<n$.length; i++) {
+    let node = n$[i];
+    let parent = parentNode(node);
+    if (parent) {
+      removeChild.call(parent, node);
+    }
   }
 }
 
