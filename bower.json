@@ -7,9 +7,16 @@
   ],
   "license": "BSD-3-Clause",
   "keywords": [
-    "webcomponents"
+    "shady-dom",
+    "shadydom",
+    "shadow-dom",
+    "shadowdom",
+    "web-components",
+    "webcomponents",
+    "polyfill",
+    "shim"
   ],
-  "homepage": "https://github.com/webcomponents/shadydom",
+  "homepage": "https://webcomponents.org/polyfills",
   "ignore": [
     "**/.*",
     "node_modules",
@@ -24,5 +31,5 @@
     "webcomponents-platform": "webcomponents/webcomponents-platform#master",
     "shadycss": "webcomponents/shadycss#master"
   },
-  "version": "1.0.0-rc.2"
+  "version": "1.0.0-rc.6"
 }

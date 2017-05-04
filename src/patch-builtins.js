@@ -11,6 +11,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 'use strict';
 
 import * as utils from './utils'
+import {flush} from './flush'
+import {dispatchEvent} from './native-methods'
 import * as mutation from './logical-mutation'
 import {ActiveElementAccessor, ShadowRootAccessor, patchAccessors} from './patch-accessors'
 import {addEventListener, removeEventListener} from './patch-events'
@@ -20,6 +22,17 @@ function getAssignedSlot(node) {
   mutation.renderRootNode(node);
   return node.__shady && node.__shady.assignedSlot || null;
 }
+
+let windowMixin = {
+
+  // NOTE: ensure these methods are bound to `window` so that `this` is correct
+  // when called directly from global context without a receiver; e.g.
+  // `addEventListener(...)`.
+  addEventListener: addEventListener.bind(window),
+
+  removeEventListener: removeEventListener.bind(window)
+
+};
 
 let nodeMixin = {
 
@@ -77,6 +90,14 @@ let nodeMixin = {
       node = node.parentNode || (node instanceof ShadyRoot ? /** @type {ShadowRoot} */(node).host : undefined);
     }
     return !!(node && node instanceof Document);
+  },
+
+  /**
+   * @this {Node}
+   */
+  dispatchEvent(event) {
+    flush();
+    return dispatchEvent.call(this, event);
   }
 
 };
@@ -189,12 +210,37 @@ let documentMixin = utils.extendAll({
    */
   importNode(node, deep) {
     return mutation.importNode(node, deep);
+  },
+
+  /**
+   * @this {Document}
+   */
+  getElementById(id) {
+    return this.querySelector(`#${id}`);
   }
+
 }, fragmentMixin);
 
 Object.defineProperties(documentMixin, {
   '_activeElement': ActiveElementAccessor.activeElement
 });
+
+let nativeBlur = HTMLElement.prototype.blur;
+
+let htmlElementMixin = utils.extendAll({
+  /**
+   * @this {HTMLElement}
+   */
+  blur() {
+    let root = this.shadowRoot;
+    let shadowActive = root && root.activeElement;
+    if (shadowActive) {
+      shadowActive.blur();
+    } else {
+      nativeBlur.call(this);
+    }
+  }
+})
 
 function patchBuiltin(proto, obj) {
   let n$ = Object.getOwnPropertyNames(obj);
@@ -221,8 +267,12 @@ function patchBuiltin(proto, obj) {
 // elements are individually patched when needed (see e.g.
 // `patchInside/OutsideElementAccessors` in `patch-accessors.js`).
 export function patchBuiltins() {
+  let nativeHTMLElement =
+    (window['customElements'] && window['customElements']['nativeHTMLElement']) ||
+    HTMLElement;
   // These patches can always be done, for all supported browsers.
   patchBuiltin(window.Node.prototype, nodeMixin);
+  patchBuiltin(window.Window.prototype, windowMixin);
   patchBuiltin(window.Text.prototype, textMixin);
   patchBuiltin(window.DocumentFragment.prototype, fragmentMixin);
   patchBuiltin(window.Element.prototype, elementMixin);
@@ -230,6 +280,7 @@ export function patchBuiltins() {
   if (window.HTMLSlotElement) {
     patchBuiltin(window.HTMLSlotElement.prototype, slotMixin);
   }
+  patchBuiltin(nativeHTMLElement.prototype, htmlElementMixin);
   // These patches can *only* be done
   // on browsers that have proper property descriptors on builtin prototypes.
   // This includes: IE11, Edge, Chrome >= 4?; Safari >= 10, Firefox
@@ -240,9 +291,6 @@ export function patchBuiltins() {
     patchAccessors(window.Text.prototype);
     patchAccessors(window.DocumentFragment.prototype);
     patchAccessors(window.Element.prototype);
-    let nativeHTMLElement =
-      (window['customElements'] && window['customElements']['nativeHTMLElement']) ||
-      HTMLElement;
     patchAccessors(nativeHTMLElement.prototype);
     patchAccessors(window.Document.prototype);
     if (window.HTMLSlotElement) {

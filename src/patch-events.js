@@ -11,11 +11,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 'use strict';
 
 import * as utils from './utils'
-import {addEventListener as nativeAddEventListener,
-  removeEventListener as nativeRemoveEventListener} from './native-methods'
+import * as nativeMethods from './native-methods'
 
 // https://github.com/w3c/webcomponents/issues/513#issuecomment-224183937
 let alwaysComposed = {
+  'blur': true,
+  'focus': true,
   'focusin': true,
   'focusout': true,
   'click': true,
@@ -191,6 +192,9 @@ function fireHandlers(event, node, phase) {
     node.__handlers[event.type][phase];
   if (hs) {
     for (let i = 0, fn; (fn = hs[i]); i++) {
+      if (event.target === event.relatedTarget) {
+        return;
+      }
       fn.call(node, event);
       if (event.__immediatePropagationStopped) {
         return;
@@ -219,7 +223,7 @@ function retargetNonBubblingEvent(e) {
   }
 
   // set the event phase to `AT_TARGET` as in spec
-  Object.defineProperty(e, 'eventPhase', {value: Event.AT_TARGET});
+  Object.defineProperty(e, 'eventPhase', {get() { return Event.AT_TARGET }});
 
   // the event only needs to be fired when owner roots change when iterating the event path
   // keep track of the last seen owner root
@@ -254,11 +258,20 @@ function listenerSettingsEqual(savedListener, node, type, capture, once, passive
     passive === savedPassive;
 }
 
+export function findListener(wrappers, node, type, capture, once, passive) {
+  for (let i = 0; i < wrappers.length; i++) {
+    if (listenerSettingsEqual(wrappers[i], node, type, capture, once, passive)) {
+      return i;
+    }
+  }
+  return -1;
+}
+
 /**
  * @this {Event}
  */
-export function addEventListener(type, fn, optionsOrCapture) {
-  if (!fn) {
+export function addEventListener(type, fnOrObj, optionsOrCapture) {
+  if (!fnOrObj) {
     return;
   }
 
@@ -278,15 +291,18 @@ export function addEventListener(type, fn, optionsOrCapture) {
     once = false;
     passive = false;
   }
-  if (fn.__eventWrappers) {
+  // hack to let ShadyRoots have event listeners
+  // event listener will be on host, but `currentTarget`
+  // will be set to shadyroot for event listener
+  let target = (optionsOrCapture && optionsOrCapture.__shadyTarget) || this;
+
+  if (fnOrObj.__eventWrappers) {
     // Stop if the wrapper function has already been created.
-    for (let i = 0; i < fn.__eventWrappers.length; i++) {
-      if (listenerSettingsEqual(fn.__eventWrappers[i], this, type, capture, once, passive)) {
-        return;
-      }
+    if (findListener(fnOrObj.__eventWrappers, target, type, capture, once, passive) > -1) {
+      return;
     }
   } else {
-    fn.__eventWrappers = [];
+    fnOrObj.__eventWrappers = [];
   }
 
   /**
@@ -295,26 +311,48 @@ export function addEventListener(type, fn, optionsOrCapture) {
   const wrapperFn = function(e) {
     // Support `once` option.
     if (once) {
-      this.removeEventListener(type, fn, optionsOrCapture);
+      this.removeEventListener(type, fnOrObj, optionsOrCapture);
     }
     if (!e['__target']) {
       patchEvent(e);
     }
+    let lastCurrentTargetDesc;
+    if (target !== this) {
+      // replace `currentTarget` to make `target` and `relatedTarget` correct for inside the shadowroot
+      lastCurrentTargetDesc = Object.getOwnPropertyDescriptor(e, 'currentTarget');
+      Object.defineProperty(e, 'currentTarget', {get() { return target }, configurable: true});
+    }
     // There are two critera that should stop events from firing on this node
     // 1. the event is not composed and the current node is not in the same root as the target
     // 2. when bubbling, if after retargeting, relatedTarget and target point to the same node
-    if (e.composed || e.composedPath().indexOf(this) > -1) {
-      if (e.eventPhase === Event.BUBBLING_PHASE) {
-        if (e.target === e.relatedTarget) {
+    if (e.composed || e.composedPath().indexOf(target) > -1) {
+      if (e.target === e.relatedTarget) {
+        if (e.eventPhase === Event.BUBBLING_PHASE) {
           e.stopImmediatePropagation();
-          return;
+        }
+        return;
+      }
+      // prevent non-bubbling events from triggering bubbling handlers on shadowroot, but only if not in capture phase
+      if (e.eventPhase !== Event.CAPTURING_PHASE && !e.bubbles && e.target !== target) {
+        return;
+      }
+      let ret = (typeof fnOrObj === 'object' && fnOrObj.handleEvent) ?
+        fnOrObj.handleEvent(e) :
+        fnOrObj.call(target, e);
+      if (target !== this) {
+        // replace the "correct" `currentTarget`
+        if (lastCurrentTargetDesc) {
+          Object.defineProperty(e, 'currentTarget', lastCurrentTargetDesc);
+          lastCurrentTargetDesc = null;
+        } else {
+          delete e['currentTarget'];
         }
       }
-      return fn.call(this, e);
+      return ret;
     }
   };
   // Store the wrapper information.
-  fn.__eventWrappers.push({
+  fnOrObj.__eventWrappers.push({
     node: this,
     type: type,
     capture: capture,
@@ -329,15 +367,17 @@ export function addEventListener(type, fn, optionsOrCapture) {
       {'capture': [], 'bubble': []};
     this.__handlers[type][capture ? 'capture' : 'bubble'].push(wrapperFn);
   } else {
-    nativeAddEventListener.call(this, type, wrapperFn, optionsOrCapture);
+    let ael = this instanceof Window ? nativeMethods.windowAddEventListener :
+      nativeMethods.addEventListener;
+    ael.call(this, type, wrapperFn, optionsOrCapture);
   }
 }
 
 /**
  * @this {Event}
  */
-export function removeEventListener(type, fn, optionsOrCapture) {
-  if (!fn) {
+export function removeEventListener(type, fnOrObj, optionsOrCapture) {
+  if (!fnOrObj) {
     return;
   }
 
@@ -352,22 +392,22 @@ export function removeEventListener(type, fn, optionsOrCapture) {
     once = false;
     passive = false;
   }
+  let target = (optionsOrCapture && optionsOrCapture.__shadyTarget) || this;
   // Search the wrapped function.
   let wrapperFn = undefined;
-  if (fn.__eventWrappers) {
-    for (let i = 0; i < fn.__eventWrappers.length; i++) {
-      if (listenerSettingsEqual(fn.__eventWrappers[i], this, type, capture, once, passive)) {
-        wrapperFn = fn.__eventWrappers.splice(i, 1)[0].wrapperFn;
-        // Cleanup.
-        if (!fn.__eventWrappers.length) {
-          fn.__eventWrappers = undefined;
-        }
-        break;
+  if (fnOrObj.__eventWrappers) {
+    let idx = findListener(fnOrObj.__eventWrappers, target, type, capture, once, passive);
+    if (idx > -1) {
+      wrapperFn = fnOrObj.__eventWrappers.splice(idx, 1)[0].wrapperFn;
+      // Cleanup.
+      if (!fnOrObj.__eventWrappers.length) {
+        fnOrObj.__eventWrappers = undefined;
       }
     }
   }
-
-  nativeRemoveEventListener.call(this, type, wrapperFn || fn, optionsOrCapture);
+  let rel = this instanceof Window ? nativeMethods.windowRemoveEventListener :
+    nativeMethods.removeEventListener;
+  rel.call(this, type, wrapperFn || fnOrObj, optionsOrCapture);
   if (wrapperFn && nonBubblingEventsToRetarget[type] &&
       this.__handlers && this.__handlers[type]) {
     const arr = this.__handlers[type][capture ? 'capture' : 'bubble'];
