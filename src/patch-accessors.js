@@ -255,7 +255,9 @@ let InsideAccessors = {
         this.nodeValue = text;
       } else {
         clearNode(this);
-        this.appendChild(document.createTextNode(text));
+        if (this.nodeType === Node.ELEMENT_NODE || text.length > 0) {
+          this.appendChild(document.createTextNode(text));
+        }
       }
     },
     configurable: true
