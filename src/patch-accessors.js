@@ -250,12 +250,14 @@ let InsideAccessors = {
      * @this {HTMLElement}
      */
     set(text) {
-      if (this.nodeType !== Node.ELEMENT_NODE) {
+      if (this.nodeType === Node.ELEMENT_NODE || this.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
+        clearNode(this);
+        if (this.nodeType === Node.ELEMENT_NODE || text.length > 0) {
+          this.appendChild(document.createTextNode(text));
+        }
+      } else {
         // TODO(sorvell): can't do this if patch nodeValue.
         this.nodeValue = text;
-      } else {
-        clearNode(this);
-        this.appendChild(document.createTextNode(text));
       }
     },
     configurable: true

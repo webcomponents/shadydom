@@ -1055,6 +1055,21 @@ suite('Accessors', function() {
     assert.equal(commentNode.textContent, 'foo', 'text content getter on commentnode incorrect');
     commentNode.textContent = 'bar';
     assert.equal(commentNode.textContent, 'bar', 'text content setter on commentnode incorrect');
+
+    var documentFragment = document.createDocumentFragment();
+    var b = document.createElement('b')
+    b.innerText = 'Hello'
+    documentFragment.appendChild(b);
+    var i = document.createElement('i')
+    i.innerText = 'World'
+    documentFragment.appendChild(i);
+    assert.equal(documentFragment.textContent, 'HelloWorld', 'textContent getter incorrect');
+    documentFragment.textContent = 'HelloWorld';
+    assert.equal(documentFragment.childNodes.length, 1, 'textContent setter incorrect');
+    assert.equal(documentFragment.textContent, 'HelloWorld', 'textContent setter incorrect');
+    documentFragment.textContent = '';
+    assert.equal(documentFragment.childNodes.length, 0, 'textContent setter incorrect');
+    assert.equal(documentFragment.textContent, '', 'textContent setter incorrect');
   });
 
   test('innerHTML', function() {
