@@ -95,7 +95,7 @@ export function innerHTML(node) {
 }
 
 export function textContent(node) {
-  if (node.nodeType !== Node.ELEMENT_NODE) {
+  if (node.nodeType !== Node.ELEMENT_NODE && node.nodeType !== Node.DOCUMENT_FRAGMENT_NODE) {
     return node.nodeValue;
   }
   let textWalker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT,
