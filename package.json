@@ -20,7 +20,7 @@
     "type": "git",
     "url": "https://github.com/webcomponents/shadydom.git"
   },
-  "author": "The Polymer Authors",
+  "author": "The Polymer Authors (https://polymer.github.io/AUTHORS.txt)",
   "license": "BSD-3-Clause",
   "bugs": {
     "url": "https://github.com/webcomponents/shadydom/issues"
