@@ -10,7 +10,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 import * as utils from './utils.js';
 import {flush} from './flush.js';
-import {dispatchEvent, contains as nativeContains} from './native-methods.js';
+import {documentQuerySelectorAll as nativeDQSA, querySelectorAll as nativeQSA, dispatchEvent, contains as nativeContains} from './native-methods.js';
 import * as mutation from './logical-mutation.js';
 import {ActiveElementAccessor, ShadowRootAccessor, patchAccessors} from './patch-accessors.js';
 import {addEventListener, removeEventListener} from './patch-events.js';
@@ -137,9 +137,25 @@ let fragmentMixin = {
    * @this {DocumentFragment}
    */
   querySelectorAll(selector) {
-    return mutation.query(this, function(n) {
-      return utils.matchesSelector(n, selector);
-    });
+    var that =  this
+    if (this instanceof Document) {
+      flush();
+      let result = nativeDQSA.call(this, selector);
+      result = Array.prototype.filter.call(result, function (n) {
+        return !utils.ownerShadyRootForNode(n);
+      });
+      return result;
+    } else if (!this.__shady && this instanceof Element) {
+      let result = nativeQSA.call(this, selector);
+      result = Array.prototype.filter.call(result, function (n) {
+        return that.childNodes.indexOf(n) >= 0;
+      });
+      return result;
+    } else {
+      return mutation.query(this, function(n) {
+        return utils.matchesSelector(n, selector);
+      });
+    }
   }
 
 };
