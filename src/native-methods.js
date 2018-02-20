@@ -22,4 +22,5 @@ export let windowRemoveEventListener = Window.prototype.removeEventListener;
 export let dispatchEvent = Element.prototype.dispatchEvent;
 export let querySelector = Element.prototype.querySelector;
 export let querySelectorAll = Element.prototype.querySelectorAll;
+export let documentQuerySelectorAll = Document.prototype.querySelectorAll;
 export let contains = Node.prototype.contains || HTMLElement.prototype.contains;
