@@ -10,7 +10,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 import * as utils from './utils.js';
 import {flush} from './flush.js';
-import {dispatchEvent, querySelectorAll} from './native-methods.js';
+import {dispatchEvent, querySelector, querySelectorAll} from './native-methods.js';
 import * as mutation from './logical-mutation.js';
 import {ActiveElementAccessor, ShadowRootAccessor, patchAccessors, patchShadowRootAccessors, IsConnectedAccessor} from './patch-accessors.js';
 import {addEventListener, removeEventListener} from './patch-events.js';
@@ -103,6 +103,11 @@ let textMixin = {
   }
 };
 
+function isNativeDocFragment(node) {
+  return  node instanceof DocumentFragment &&
+      node.ownerDocument != window.document && !utils.isShadyRoot(node);
+}
+
 let fragmentMixin = {
 
   // TODO(sorvell): consider doing native QSA and filtering results.
@@ -110,6 +115,9 @@ let fragmentMixin = {
    * @this {DocumentFragment}
    */
   querySelector(selector) {
+    if (isNativeDocFragment(this)) {
+      return querySelector.call(this, selector);
+    }
     // match selector and halt on first result.
     let result = mutation.query(this, function(n) {
       return utils.matchesSelector(n, selector);
@@ -126,10 +134,14 @@ let fragmentMixin = {
   // misses distributed nodes, see
   // https://github.com/webcomponents/shadydom/pull/210#issuecomment-361435503
   querySelectorAll(selector, useNative) {
-    if (useNative) {
-      const o = Array.prototype.slice.call(querySelectorAll(this, selector));
-      const root = this.getRootNode();
-      return o.filter(e => e.getRootNode() == root);
+    const nativeFrag = isNativeDocFragment(this);
+    if (useNative || nativeFrag) {
+      let o = Array.prototype.slice.call(querySelectorAll.call(this, selector));
+      if (!nativeFrag) {
+        const root = this.getRootNode();
+        o = o.filter(e => e.getRootNode() == root);
+      }
+      return o;
     }
     return mutation.query(this, function(n) {
       return utils.matchesSelector(n, selector);
