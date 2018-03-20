@@ -1269,6 +1269,15 @@ suite('Accessors', function() {
     assert.equal(element.content.childNodes.length, 2);
   });
 
+  test('innerHTML with nested shadowRoots', function() {
+    var element = document.createElement('div');
+    document.body.appendChild(element);
+    element.innerHTML = '<div><x-simple></x-simple></div>';
+    ShadyDOM.flush();
+    assert.equal(element.innerHTML, '<div><x-simple></x-simple></div>');
+    document.body.removeChild(element);
+  });
+
 });
 
 suite('non-distributed elements', function() {
