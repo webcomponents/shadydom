@@ -170,6 +170,32 @@ let OutsideAccessors = {
 
 };
 
+const FormAssociatedAccessors = {
+  form: {
+    /**
+     * @this {HTMLElement}
+     */
+    get() {
+      const root = utils.ownerShadyRootForNode(this);
+      let parent = this.parentNode;
+
+      while (parent != null) {
+        if (parent.localName === 'form') {
+          return parent;
+        }
+
+        if (parent === root) {
+          break;
+        }
+
+        parent = parent.parentNode;
+      }
+
+      return null;
+    }
+  }
+};
+
 export const ClassNameAccessor = {
   className: {
     /**
@@ -495,6 +521,10 @@ export function patchAccessors(proto) {
   patchAccessorGroup(proto, ClassNameAccessor);
   patchAccessorGroup(proto, InsideAccessors);
   patchAccessorGroup(proto, ActiveElementAccessor);
+}
+
+export function patchFormAssociatedAccessors(proto) {
+  patchAccessorGroup(proto, FormAssociatedAccessors);
 }
 
 export function patchShadowRootAccessors(proto) {

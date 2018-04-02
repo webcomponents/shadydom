@@ -504,6 +504,55 @@ suite('Add.shadowRoot to element with childNodes', function() {
 
 });
 
+suite('Patch of form-associated elements', function() {
+  const FORM_ASSOCIATED_ELEMENTS = 'select,option,fieldset,input,textarea,button';
+
+  let form;
+  let shadowRoot;
+
+  function createFormElements() {
+    const container = document.createElement('div');
+
+    const select = document.createElement('select');
+    select.appendChild(document.createElement('option'));
+    container.appendChild(select);
+
+    const fieldset = document.createElement('fieldset');
+    fieldset.appendChild(document.createElement('legend'));
+    fieldset.appendChild(document.createElement('input'));
+    fieldset.appendChild(document.createElement('label'));
+    container.appendChild(fieldset);
+
+    container.appendChild(document.createElement('textarea'));
+    container.appendChild(document.createElement('button'));
+
+    return container;
+  }
+
+  setup(function() {
+    form = document.createElement('form');
+
+    const shadowContainer = document.createElement('div');
+    shadowRoot = shadowContainer.attachShadow({mode: 'open'});
+    shadowRoot.appendChild(createFormElements());
+    form.appendChild(shadowContainer);
+
+    form.appendChild(createFormElements());
+  });
+
+  test('elements in shadowRoot have null form property', function() {
+    for (const element of shadowRoot.querySelectorAll(FORM_ASSOCIATED_ELEMENTS)) {
+      assert.equal(element.form, null, 'Form should be "null" for element ' + element);
+    }
+  });
+
+  test('elements outside shadowRoot have correct form reference', function() {
+    for (const element of form.querySelectorAll(FORM_ASSOCIATED_ELEMENTS)) {
+      assert.equal(element.form, form, 'Form should exist for element ' + element);
+    }
+  });
+})
+
 
 suite('Patch of addEventListener/removeEventListener', function() {
 
