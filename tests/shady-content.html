@@ -98,6 +98,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     defineTestElement('x-dist-simple');
   </script>
 
+  <template id="x-dist-default">
+    <slot id="content">
+      <div>I'm default content.</div>
+    </slot>
+  </template>
+  <script>
+    defineTestElement('x-dist-default');
+  </script>
+
   <template id="x-dist-star"><slot></slot></template>
   <script>
     defineTestElement('x-dist-star');
@@ -1310,6 +1319,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     test('shadowRoot set via innerHTML that contains a <slot> and a custom element that also sets shadowRoot content via innerHTML', function() {
       var el = document.querySelector('use-inner-html');
       assert.equal(ShadyDOM.nativeTree.textContent(el), '[I][A]');
+    });
+
+    test('assignedNodes does not include default content', function() {
+      var x = document.createElement('x-dist-default');
+      document.body.appendChild(x);
+      ShadyDOM.flush();
+      assert.equal(x.shadowRoot.querySelector('slot').assignedNodes().length, 0, 'Default nodes should not show in the assignedNodes list');
+      document.body.removeChild(x);
     });
 
   });
