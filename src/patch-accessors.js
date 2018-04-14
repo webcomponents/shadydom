@@ -206,7 +206,6 @@ const FORM_LISTED_ELEMENTS = {
 };
 
 function acceptNode(node) {
-  console.log(node);
   if (FORM_LISTED_ELEMENTS[node.localName]) {
     return NodeFilter.FILTER_ACCEPT;
   }
