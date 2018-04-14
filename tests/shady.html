@@ -549,6 +549,16 @@ suite('Patch of form-listed elements', function() {
   let shadowRoot;
   let formLightDom;
 
+  const canDefineFormAccessors = (function() {
+    let objDesc = Object.getOwnPropertyDescriptor(window.HTMLFormElement.prototype, 'elements');
+    if (!objDesc) {
+      const form = document.createElement('form');
+      objDesc = Object.getOwnPropertyDescriptor(form, 'elements');
+    }
+
+    return objDesc && objDesc.configurable;
+  })();
+
   function createFormElements() {
     const container = document.createElement('div');
 
@@ -571,6 +581,9 @@ suite('Patch of form-listed elements', function() {
   }
 
   setup(function() {
+    if (!canDefineFormAccessors) {
+      this.skip();
+    }
     form = ShadyDOM.patch(document.createElement('form'));
 
     const shadowContainer = document.createElement('div');
