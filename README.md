@@ -54,3 +54,7 @@ This should only be an issue when setting `textContent` or `innerHTML` on a
 node inside a shadowRoot adds or removes a `<slot>` element.
 In this case, the shadowRoot will not render correctly. To workaround this,
 call `ShadyDOM.patch(node)` prior to setting `textContent` or `innerHTML`.
+
+Form elements are patched, which means that `form.elements` does not include Shadow DOM elements.
+However, as a lack of availability of overriding index accessors (e.g. `form[0]` or `form.myinput`) these are not polyfilled.
+Instead, use `form.elements[0]` and `form.elements.myinput`, which are polyfilled.

@@ -504,23 +504,26 @@ suite('Add.shadowRoot to element with childNodes', function() {
 
 });
 
-suite('Patch of form-associated elements', function() {
-  const FORM_ASSOCIATED_ELEMENTS = 'select,option,fieldset,input,textarea,button';
+suite('Patch of form-listed elements', function() {
+  const FORM_LISTED_ELEMENTS = 'select,option,fieldset,input,textarea,button';
 
   let form;
   let shadowRoot;
+  let formLightDom;
 
   function createFormElements() {
     const container = document.createElement('div');
 
     const select = document.createElement('select');
     select.appendChild(document.createElement('option'));
+    select.setAttribute('name', 'selector');
     container.appendChild(select);
 
     const fieldset = document.createElement('fieldset');
     fieldset.appendChild(document.createElement('legend'));
     fieldset.appendChild(document.createElement('input'));
     fieldset.appendChild(document.createElement('label'));
+    fieldset.setAttribute('id', 'fields');
     container.appendChild(fieldset);
 
     container.appendChild(document.createElement('textarea'));
@@ -538,18 +541,41 @@ suite('Patch of form-associated elements', function() {
     form.appendChild(shadowContainer);
 
     form.appendChild(createFormElements());
+
+    formLightDom = form.querySelectorAll(FORM_LISTED_ELEMENTS);
   });
 
   test('elements in shadowRoot have null form property', function() {
-    for (const element of shadowRoot.querySelectorAll(FORM_ASSOCIATED_ELEMENTS)) {
+    for (const element of shadowRoot.querySelectorAll(FORM_LISTED_ELEMENTS)) {
       assert.equal(element.form, null, 'Form should be "null" for element ' + element);
     }
   });
 
   test('elements outside shadowRoot have correct form reference', function() {
-    for (const element of form.querySelectorAll(FORM_ASSOCIATED_ELEMENTS)) {
+    for (const element of formLightDom) {
       assert.equal(element.form, form, 'Form should exist for element ' + element);
     }
+  });
+
+  test('form.elements does not include references to elements in shadow dom', function() {
+    assert.deepEqual(Array.from(form.elements), formLightDom);
+  });
+
+  test('form.length should be the length of form.elements', function() {
+    assert.equal(form.length, formLightDom.length);
+  });
+
+  test('can index on form.elements', function() {
+    for (let i = 0; i < formLightDom.length; i++) {
+      assert.equal(form.elements[i], formLightDom[i]);
+      assert.equal(form.elements.item(i), formLightDom[i]);
+    }
+  });
+
+  test('can named index on form.elements', function() {
+    assert.equal(form.elements['selector'], form.querySelector('select'));
+    assert.equal(form.elements['fields'], form.querySelector('fieldset'));
+    assert.equal(form.elements.namedItem('selector'), form.querySelector('select'));
   });
 })
 

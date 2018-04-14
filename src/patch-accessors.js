@@ -170,13 +170,13 @@ let OutsideAccessors = {
 
 };
 
-const FormAssociatedAccessors = {
+const FormListedAccessors = {
   form: {
     /**
      * @this {HTMLElement}
      */
     get() {
-      const root = utils.ownerShadyRootForNode(this);
+      const root = this.getRootNode();
       let parent = this.parentNode;
 
       while (parent != null) {
@@ -192,6 +192,72 @@ const FormAssociatedAccessors = {
       }
 
       return null;
+    }
+  }
+};
+
+const FORM_LISTED_ELEMENTS = {
+  ['select']: true,
+  ['option']: true,
+  ['fieldset']: true,
+  ['input']: true,
+  ['textarea']: true,
+  ['button']: true
+};
+
+const formListedElementNodeWalker = document.createTreeWalker(
+  document,
+  NodeFilter.SHOW_ELEMENT,
+  {
+    acceptNode(node) {
+      if (FORM_LISTED_ELEMENTS[node.localName]) {
+        return NodeFilter.FILTER_ACCEPT;
+      }
+      if (node.shadowRoot) {
+        return NodeFilter.FILTER_REJECT;
+      }
+      return NodeFilter.FILTER_SKIP;
+    }
+  },
+  false
+);
+
+const FormAccessors = {
+  elements: {
+    /**
+     * @this {HTMLElement}
+     */
+    get() {
+      const elements = [];
+      formListedElementNodeWalker.currentNode = this;
+
+      while (formListedElementNodeWalker.nextNode()) {
+        const currentNode = formListedElementNodeWalker.currentNode;
+        elements.push(currentNode);
+
+        const name = currentNode.getAttribute('id') || currentNode.getAttribute('name');
+
+        if (name) {
+          elements[name] = currentNode;
+        }
+      }
+
+      elements.item = function(index) {
+        return elements[index];
+      };
+      elements.namedItem = function(name) {
+        return elements[name];
+      };
+
+      return elements;
+    }
+  },
+  length: {
+    /**
+     * @this {HTMLElement}
+     */
+    get() {
+      return this.elements.length;
     }
   }
 };
@@ -523,8 +589,12 @@ export function patchAccessors(proto) {
   patchAccessorGroup(proto, ActiveElementAccessor);
 }
 
-export function patchFormAssociatedAccessors(proto) {
-  patchAccessorGroup(proto, FormAssociatedAccessors);
+export function patchFormListedAccessors(proto) {
+  patchAccessorGroup(proto, FormListedAccessors);
+}
+
+export function patchFormAccessors(proto) {
+  patchAccessorGroup(proto, FormAccessors);
 }
 
 export function patchShadowRootAccessors(proto) {

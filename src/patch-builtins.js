@@ -12,7 +12,7 @@ import * as utils from './utils.js';
 import {flush} from './flush.js';
 import {dispatchEvent, querySelectorAll} from './native-methods.js';
 import * as mutation from './logical-mutation.js';
-import {ActiveElementAccessor, ShadowRootAccessor, patchAccessors, patchFormAssociatedAccessors, patchShadowRootAccessors, IsConnectedAccessor} from './patch-accessors.js';
+import {ActiveElementAccessor, ShadowRootAccessor, patchAccessors, patchFormListedAccessors, patchFormAccessors, patchShadowRootAccessors, IsConnectedAccessor} from './patch-accessors.js';
 import {addEventListener, removeEventListener} from './patch-events.js';
 import {attachShadow, ShadyRoot} from './attach-shadow.js';
 import {shadyDataForNode} from './shady-data.js';
@@ -333,15 +333,16 @@ export function patchBuiltins() {
     if (window.HTMLSlotElement) {
       patchAccessors(window.HTMLSlotElement.prototype);
     }
-    // See https://html.spec.whatwg.org/multipage/forms.html#form-associated-element
-    patchFormAssociatedAccessors(window.HTMLButtonElement.prototype);
-    patchFormAssociatedAccessors(window.HTMLFieldSetElement.prototype);
-    patchFormAssociatedAccessors(window.HTMLInputElement.prototype);
-    patchFormAssociatedAccessors(window.HTMLObjectElement.prototype);
-    patchFormAssociatedAccessors(window.HTMLOutputElement.prototype);
-    patchFormAssociatedAccessors(window.HTMLSelectElement.prototype);
-    patchFormAssociatedAccessors(window.HTMLOptionElement.prototype);
-    patchFormAssociatedAccessors(window.HTMLTextAreaElement.prototype);
+    // See https://html.spec.whatwg.org/multipage/forms.html#category-listed
+    patchFormListedAccessors(window.HTMLButtonElement.prototype);
+    patchFormListedAccessors(window.HTMLFieldSetElement.prototype);
+    patchFormListedAccessors(window.HTMLInputElement.prototype);
+    patchFormListedAccessors(window.HTMLObjectElement.prototype);
+    patchFormListedAccessors(window.HTMLOutputElement.prototype);
+    patchFormListedAccessors(window.HTMLSelectElement.prototype);
+    patchFormListedAccessors(window.HTMLOptionElement.prototype);
+    patchFormListedAccessors(window.HTMLTextAreaElement.prototype);
+    patchFormAccessors(window.HTMLFormElement.prototype);
   }
   patchShadowRootAccessors(ShadyRoot.prototype);
 }
