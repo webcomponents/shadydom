@@ -556,7 +556,7 @@ suite('Patch of form-listed elements', function() {
       objDesc = Object.getOwnPropertyDescriptor(form, 'elements');
     }
 
-    return objDesc && objDesc.configurable;
+    return !objDesc || objDesc.configurable;
   })();
 
   function createFormElements() {
