@@ -24,7 +24,7 @@ import {observeChildren, unobserveChildren, filterMutations} from './observe-cha
 import * as nativeMethods from './native-methods.js';
 import {accessors as nativeTree} from './native-tree.js';
 import {patchBuiltins} from './patch-builtins.js';
-import {patchInsideElementAccessors, patchOutsideElementAccessors} from './patch-accessors.js';
+import {patchInsideElementAccessors, patchOutsideElementAccessors, patchFormListedAccessors, maybePatchFormAccessors, FORM_LISTED_ELEMENTS} from './patch-accessors.js';
 import {patchEvents} from './patch-events.js';
 import {ShadyRoot} from './attach-shadow.js';
 
@@ -42,6 +42,13 @@ if (utils.settings.inUse) {
     'patch': (node) => {
       patchInsideElementAccessors(node);
       patchOutsideElementAccessors(node);
+      if (node.localName === 'form') {
+        maybePatchFormAccessors(node);
+      }
+      if (FORM_LISTED_ELEMENTS[node.localName]) {
+        // See https://html.spec.whatwg.org/multipage/forms.html#category-listed
+        patchFormListedAccessors(node);
+      }
       return node;
     },
     'isShadyRoot': utils.isShadyRoot,

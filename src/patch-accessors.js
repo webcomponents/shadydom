@@ -196,7 +196,7 @@ const FormListedAccessors = {
   }
 };
 
-const FORM_LISTED_ELEMENTS = {
+export const FORM_LISTED_ELEMENTS = {
   ['select']: true,
   ['option']: true,
   ['fieldset']: true,
@@ -665,5 +665,15 @@ export let patchInsideElementAccessors = utils.settings.hasDescriptors ?
     if (!sd.__insideAccessors) {
       patchAccessorGroup(element, InsideAccessors, true);
       patchAccessorGroup(element, ShadowRootAccessor, true);
+    }
+  }
+
+// ensure a form has patched accessors; no-op when not needed
+export let maybePatchFormAccessors = utils.settings.hasDescriptors ?
+  function() {} : function(element) {
+    const sd = ensureShadyDataForNode(element);
+    if (!sd.__formAccessors) {
+      sd.__formAccessors = true;
+      patchAccessorGroup(element, FormAccessors, true);
     }
   }

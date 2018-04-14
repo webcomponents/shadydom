@@ -552,26 +552,26 @@ suite('Patch of form-listed elements', function() {
   function createFormElements() {
     const container = document.createElement('div');
 
-    const select = document.createElement('select');
-    select.appendChild(document.createElement('option'));
+    const select = ShadyDOM.patch(document.createElement('select'));
+    select.appendChild(ShadyDOM.patch(document.createElement('option')));
     select.setAttribute('name', 'selector');
     container.appendChild(select);
 
-    const fieldset = document.createElement('fieldset');
+    const fieldset = ShadyDOM.patch(document.createElement('fieldset'));
     fieldset.appendChild(document.createElement('legend'));
-    fieldset.appendChild(document.createElement('input'));
+    fieldset.appendChild(ShadyDOM.patch(document.createElement('input')));
     fieldset.appendChild(document.createElement('label'));
     fieldset.setAttribute('id', 'fields');
     container.appendChild(fieldset);
 
-    container.appendChild(document.createElement('textarea'));
-    container.appendChild(document.createElement('button'));
+    container.appendChild(ShadyDOM.patch(document.createElement('textarea')));
+    container.appendChild(ShadyDOM.patch(document.createElement('button')));
 
     return container;
   }
 
   setup(function() {
-    form = document.createElement('form');
+    form = ShadyDOM.patch(document.createElement('form'));
 
     const shadowContainer = document.createElement('div');
     shadowRoot = shadowContainer.attachShadow({mode: 'open'});
