@@ -205,20 +205,24 @@ const FORM_LISTED_ELEMENTS = {
   ['button']: true
 };
 
+function acceptNode(node) {
+  console.log(node);
+  if (FORM_LISTED_ELEMENTS[node.localName]) {
+    return NodeFilter.FILTER_ACCEPT;
+  }
+  if (node.shadowRoot) {
+    return NodeFilter.FILTER_REJECT;
+  }
+  return NodeFilter.FILTER_SKIP;
+}
+// IE11 wants a function as argument, but other browsers want
+// an object with as `acceptNode` property the function
+acceptNode.acceptNode = acceptNode;
+
 const formListedElementNodeWalker = document.createTreeWalker(
   document,
   NodeFilter.SHOW_ELEMENT,
-  {
-    acceptNode(node) {
-      if (FORM_LISTED_ELEMENTS[node.localName]) {
-        return NodeFilter.FILTER_ACCEPT;
-      }
-      if (node.shadowRoot) {
-        return NodeFilter.FILTER_REJECT;
-      }
-      return NodeFilter.FILTER_SKIP;
-    }
-  },
+  acceptNode,
   false
 );
 
@@ -236,7 +240,6 @@ const FormAccessors = {
         elements.push(currentNode);
 
         const name = currentNode.getAttribute('id') || currentNode.getAttribute('name');
-
         if (name) {
           elements[name] = currentNode;
         }

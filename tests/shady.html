@@ -584,14 +584,15 @@ suite('Patch of form-listed elements', function() {
   });
 
   test('elements in shadowRoot have null form property', function() {
-    for (const element of shadowRoot.querySelectorAll(FORM_LISTED_ELEMENTS)) {
-      assert.equal(element.form, null, 'Form should be "null" for element ' + element);
+    const elements = shadowRoot.querySelectorAll(FORM_LISTED_ELEMENTS);
+    for (let i = 0; i < elements.length; i++) {
+      assert.equal(elements[i].form, null, 'Form should be "null" for element ' + elements[i]);
     }
   });
 
   test('elements outside shadowRoot have correct form reference', function() {
-    for (const element of formLightDom) {
-      assert.equal(element.form, form, 'Form should exist for element ' + element);
+    for (let i = 0; i < formLightDom; i++) {
+      assert.equal(formLightDom[i].form, form, 'Form should exist for element ' + formLightDom[i]);
     }
   });
 

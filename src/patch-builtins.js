@@ -334,14 +334,12 @@ export function patchBuiltins() {
       patchAccessors(window.HTMLSlotElement.prototype);
     }
     // See https://html.spec.whatwg.org/multipage/forms.html#category-listed
-    patchFormListedAccessors(window.HTMLButtonElement.prototype);
-    patchFormListedAccessors(window.HTMLFieldSetElement.prototype);
-    patchFormListedAccessors(window.HTMLInputElement.prototype);
-    patchFormListedAccessors(window.HTMLObjectElement.prototype);
-    patchFormListedAccessors(window.HTMLOutputElement.prototype);
     patchFormListedAccessors(window.HTMLSelectElement.prototype);
     patchFormListedAccessors(window.HTMLOptionElement.prototype);
+    patchFormListedAccessors(window.HTMLFieldSetElement.prototype);
+    patchFormListedAccessors(window.HTMLInputElement.prototype);
     patchFormListedAccessors(window.HTMLTextAreaElement.prototype);
+    patchFormListedAccessors(window.HTMLButtonElement.prototype);
     patchFormAccessors(window.HTMLFormElement.prototype);
   }
   patchShadowRootAccessors(ShadyRoot.prototype);
