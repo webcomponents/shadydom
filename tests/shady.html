@@ -695,12 +695,15 @@ suite('Patch of form-listed elements', function() {
 
   test('does reset textarea in light dom', function() {
     const textarea = form.querySelector('textarea');
-    const value = 'Some text here';
 
-    textarea.appendChild(document.createTextNode(value));
+    textarea.appendChild(document.createTextNode('Some text here'));
     textarea.value = 'Some other text that should be reset';
     form.reset();
-    assert.equal(textarea.value, value);
+    // Even though this should actually just be "Some text here",
+    // Edge and IE11 actually modify the firstChild.textContent.
+    // Therefore we can't just check for the raw value, but have
+    // to assert on the firstChild content instead
+    assert.equal(textarea.value, textarea.firstChild.textContent);
   });
 });
 
