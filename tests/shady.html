@@ -544,6 +544,7 @@ suite('Add.shadowRoot to element with childNodes', function() {
 
 suite('Patch of form-listed elements', function() {
   const FORM_LISTED_ELEMENTS = 'select,option,fieldset,input,textarea,button';
+  const FORM_RESETTABLE_ELEMENTS = 'select,input,textarea';
 
   let form;
   let shadowRoot;
@@ -563,7 +564,11 @@ suite('Patch of form-listed elements', function() {
     const container = document.createElement('div');
 
     const select = ShadyDOM.patch(document.createElement('select'));
-    select.appendChild(ShadyDOM.patch(document.createElement('option')));
+    for (const number of [1,2,3]) {
+      const option = ShadyDOM.patch(document.createElement('option'));
+      option.value = `option${number}`;
+      select.appendChild(option);
+    }
     select.setAttribute('name', 'selector');
     container.appendChild(select);
 
@@ -629,8 +634,75 @@ suite('Patch of form-listed elements', function() {
     assert.equal(form.elements['fields'], form.querySelector('fieldset'));
     assert.equal(form.elements.namedItem('selector'), form.querySelector('select'));
   });
-})
 
+  test('does not reset input in shadowRoot', function() {
+    const input = shadowRoot.querySelector('input');
+    const value = 'Custom value';
+
+    input.value = value;
+    form.reset();
+    assert.equal(input.value, value);
+
+    input.checked = true;
+    form.reset();
+    assert.equal(input.checked, true);
+  });
+
+  test('does reset input in light dom', function() {
+    const input = form.querySelector('input');
+    const value = 'Custom value';
+
+    input.value = value;
+    form.reset();
+    assert.equal(input.value, '');
+
+    input.checked = true;
+    form.reset();
+    assert.equal(input.checked, false);
+  });
+
+  test('does not reset select in shadowRoot', function() {
+    const select = shadowRoot.querySelector('select');
+    const value = 'option2';
+
+    select.value = value;
+    form.reset();
+    assert.equal(select.value, value);
+    assert.equal(select.querySelector('option[value="option1"]').selected, false);
+    assert.equal(select.querySelector('option[value="option2"]').selected, true);
+  });
+
+  test('does reset select in light dom', function() {
+    const select = form.querySelector('select');
+    const value = 'option2';
+
+    select.value = value;
+    form.reset();
+    assert.equal(select.value, 'option1');
+    assert.equal(select.querySelector('option[value="option1"]').selected, true);
+    assert.equal(select.querySelector('option[value="option2"]').selected, false);
+  });
+
+  test('does not reset textarea in shadowRoot', function() {
+    const textarea = shadowRoot.querySelector('textarea');
+    const value = 'Some other text that should be reset';
+
+    textarea.appendChild(document.createTextNode('Some text here'));
+    textarea.value = value;
+    form.reset();
+    assert.equal(textarea.value, value);
+  });
+
+  test('does reset textarea in light dom', function() {
+    const textarea = form.querySelector('textarea');
+    const value = 'Some text here';
+
+    textarea.appendChild(document.createTextNode(value));
+    textarea.value = 'Some other text that should be reset';
+    form.reset();
+    assert.equal(textarea.value, value);
+  });
+});
 
 suite('Patch of addEventListener/removeEventListener', function() {
 

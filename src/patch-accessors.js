@@ -205,23 +205,39 @@ export const FORM_LISTED_ELEMENTS = {
   ['button']: true
 };
 
-function acceptNode(node) {
-  if (FORM_LISTED_ELEMENTS[node.localName]) {
-    return NodeFilter.FILTER_ACCEPT;
+export const FORM_RESETTABLE_ELEMENTS = {
+  ['select']: true,
+  ['input']: true,
+  ['textarea']: true
+};
+
+function acceptNodeForList(list) {
+  function acceptNode(node) {
+    if (list[node.localName]) {
+      return NodeFilter.FILTER_ACCEPT;
+    }
+    if (node.shadowRoot) {
+      return NodeFilter.FILTER_REJECT;
+    }
+    return NodeFilter.FILTER_SKIP;
   }
-  if (node.shadowRoot) {
-    return NodeFilter.FILTER_REJECT;
-  }
-  return NodeFilter.FILTER_SKIP;
+  // IE11 wants a function as argument, but other browsers want
+  // an object with as `acceptNode` property the function
+  acceptNode.acceptNode = acceptNode;
+  return acceptNode;
 }
-// IE11 wants a function as argument, but other browsers want
-// an object with as `acceptNode` property the function
-acceptNode.acceptNode = acceptNode;
 
 const formListedElementNodeWalker = document.createTreeWalker(
   document,
   NodeFilter.SHOW_ELEMENT,
-  acceptNode,
+  acceptNodeForList(FORM_LISTED_ELEMENTS),
+  false
+);
+
+const formResettableElementNodeWalker = document.createTreeWalker(
+  document,
+  NodeFilter.SHOW_ELEMENT,
+  acceptNodeForList(FORM_RESETTABLE_ELEMENTS),
   false
 );
 
@@ -252,7 +268,8 @@ const FormAccessors = {
       };
 
       return elements;
-    }
+    },
+    configurable: true
   },
   length: {
     /**
@@ -260,7 +277,29 @@ const FormAccessors = {
      */
     get() {
       return this.elements.length;
-    }
+    },
+    configurable: true
+  },
+  reset: {
+    value() {
+      formResettableElementNodeWalker.currentNode = this;
+
+      while (formResettableElementNodeWalker.nextNode()) {
+        const currentNode = formResettableElementNodeWalker.currentNode;
+
+        if (currentNode.localName === 'input') {
+          currentNode.value = currentNode.getAttribute('value') || '';
+          currentNode.checked = currentNode.hasAttribute('checked');
+        } else if (currentNode.localName === 'select') {
+          for (const option of currentNode.options) {
+            option.selected = option.getAttribute('selected');
+          }
+        } else if (currentNode.localName === 'textarea') {
+          currentNode.value = currentNode.firstChild && currentNode.firstChild.textContent || '';
+        }
+      }
+    },
+    configurable: true
   }
 };
 
