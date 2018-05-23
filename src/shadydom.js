@@ -27,11 +27,10 @@ import {patchBuiltins} from './patch-builtins.js';
 import {patchInsideElementAccessors, patchOutsideElementAccessors} from './patch-accessors.js';
 import {patchEvents} from './patch-events.js';
 import {ShadyRoot} from './attach-shadow.js';
-import {getInnerHTML} from './innerHTML.js';
-import {shadyDataForNode} from './shady-data.js';
+import {getComposedHTML, getComposedChildNodes, getComposedTextContent} from './composed-methods.js';
 
 if (utils.settings.inUse) {
-  let ShadyDOM = {
+  const ShadyDOM = {
     // TODO(sorvell): remove when Polymer does not depend on this.
     'inUse': utils.settings.inUse,
     // NOTE: old browsers without prototype accessors (very old Chrome
@@ -55,24 +54,9 @@ if (utils.settings.inUse) {
     'unobserveChildren': unobserveChildren,
     'nativeMethods': nativeMethods,
     'nativeTree': nativeTree,
-    'getComposedHTML': function(node) {
-      return getInnerHTML(node, (n) => nativeTree.childNodes(n).filter(e => {
-        const d = shadyDataForNode(e);
-        return !d || !d.undistributed;
-      }));
-    },
-    'getComposedChildNodes': function(node) {
-      return nativeTree.childNodes(node).filter(e => {
-        const d = shadyDataForNode(e);
-        return !d || !d.undistributed;
-      });
-    },
-    'getComposedTextContent': function(node) {
-      return node.nodeType === Node.ELEMENT_NODE ? nativeTree.childNodes(node).filter(e => {
-        const d = shadyDataForNode(e);
-        return !d || !d.undistributed;
-      }).map(n => ShadyDOM.getComposedTextContent(n)).join('') : node.textContent;
-    }
+    'getComposedHTML': getComposedHTML,
+    'getComposedChildNodes': getComposedChildNodes,
+    'getComposedTextContent': getComposedTextContent
   };
 
   window['ShadyDOM'] = ShadyDOM;
