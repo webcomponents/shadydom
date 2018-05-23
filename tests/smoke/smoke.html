@@ -44,6 +44,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   host.innerHTML = 'abc';
   document.body.appendChild(host);
   host.shadowRoot.innerHTML = '<slot>fallback</slot>';
+  // undistributed
+  let h2 = document.createElement('div');
+  document.body.appendChild(h2);
+  let un = document.createElement('div');
+  un.textContent = 'undistributed';
+  h2.appendChild(un);
+  h2.attachShadow({mode: 'open'});
+  h2.shadowRoot.appendChild(document.createTextNode('shadow-content'))
   ShadyDOM.flush();
 </script>
 

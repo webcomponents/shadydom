@@ -1,0 +1,65 @@
+<!doctype html>
+<!--
+@license
+Copyright (c) 2014 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<html>
+  <head>
+    <title>polymer</title>
+    <!-- <script src="../webcomponentsjs/webcomponents-bundle.js"></script> -->
+    <script>
+        ShadyDOM = {force: true};
+      </script>
+      <script src="../../shadydom.min.js"></script>
+  </head>
+  <body>
+    <button id="toggleSlotButton">1. toggleSlot</button>
+    <button id="toggleChildButton">2. toggleChild</button>
+    <hr>
+    <x-distributes id="dist"><x-child id="child">child</x-child></x-distributes>
+
+    <script>
+      customElements.define('x-distributes', class extends HTMLElement {
+        connectedCallback() {
+          console.log(`${this.localName}: connected`);
+          this.attachShadow({mode: 'open'}).innerHTML =
+            `[<span><slot id="slot"></span></slot>]`
+        }
+      });
+      customElements.define('x-child', class extends HTMLElement {
+        connectedCallback() {
+          console.log(`${this.localName}: connected, parent: ${this.parentNode && this.parentNode.localName}`);
+        }
+        disconnectedCallback() {
+          console.log(`${this.localName}: disconnected, parent: ${this.parentNode && this.parentNode.localName}`);
+        }
+      });
+    </script>
+
+    <script>
+      const dist = document.getElementById('dist');
+      const child = document.getElementById('child');
+      const slot = dist.shadowRoot.getElementById('slot');
+      const slotParent = slot.parentNode;
+      document.getElementById('toggleSlotButton').onclick = e => {
+        if (slot.parentNode) {
+          slot.parentNode.removeChild(slot);
+        } else {
+          slotParent.appendChild(slot);
+        }
+      }
+      document.getElementById('toggleChildButton').onclick = e => {
+        if (child.parentNode) {
+          dist.removeChild(child);
+        } else {
+          dist.appendChild(child);
+        }
+      }
+    </script>
+  </body>
+</html>

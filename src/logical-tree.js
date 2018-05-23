@@ -87,11 +87,14 @@ export function recordRemoveChild(node, container) {
   if (n) {
     ensureShadyDataForNode(n).previousSibling = p;
   }
+  // NOTE: mark parentNode explicitly as null when node is removed.
+  // It is then tracked as having no parent and must be given a parent
+  // when inserted again.
+  nodeData.parentNode = null;
   // When an element is removed, logical data is no longer tracked.
   // Explicitly set `undefined` here to indicate this. This is disginguished
   // from `null` which is set if info is null.
-  nodeData.parentNode = nodeData.previousSibling =
-  nodeData.nextSibling = undefined;
+  nodeData.previousSibling = nodeData.nextSibling = undefined;
   if (containerData.childNodes !== undefined) {
     // remove caching of childNodes
     containerData.childNodes = null;

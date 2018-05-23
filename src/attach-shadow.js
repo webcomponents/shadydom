@@ -15,6 +15,7 @@ import {recordChildNodes} from './logical-tree.js';
 import {removeChild, insertBefore, dispatchEvent} from './native-methods.js';
 import {accessors} from './native-tree.js';
 import {ensureShadyDataForNode, shadyDataForNode} from './shady-data.js';
+import {undistributeNode, ensureNodeDistributable} from './undistribute.js';
 
 const {parentNode, childNodes} = accessors;
 
@@ -151,7 +152,7 @@ export class ShadyRoot {
         const child = c$[i];
         const data = shadyDataForNode(child);
         if (parentNode(child) === this.host && !data.assignedSlot) {
-          removeChild.call(this.host, child);
+          undistributeNode(child);
         }
       }
     }
@@ -357,6 +358,9 @@ export class ShadyRoot {
   // Ensures that the rendered node list inside `container` is `children`.
   _updateChildNodes(container, children) {
     let composed = childNodes(container);
+    composed = composed.filter(e => {
+      return !ensureShadyDataForNode(e).undistributed;
+    })
     let splices = calculateSplices(children, composed);
     // process removals
     for (let i=0, d=0, s; (i<splices.length) && (s=splices[i]); i++) {
@@ -366,7 +370,13 @@ export class ShadyRoot {
         // then schedule its previous host for distribution resulting in
         // the node being removed here.
         if (parentNode(n) === container) {
-          removeChild.call(container, n);
+          // the node is logically in the tree, undistribute it in a way
+          // that leaves it in the tree.
+          if (n.parentNode) {
+            undistributeNode(n);
+          } else {
+            removeChild.call(container, n);
+          }
         }
         // TODO(sorvell): avoid the need for splicing here.
         composed.splice(s.index + d, 1);
@@ -379,6 +389,7 @@ export class ShadyRoot {
       for (let j=s.index, n; j < s.index + s.addedCount; j++) {
         n = children[j];
         insertBefore.call(container, n, next);
+        ensureNodeDistributable(n);
         composed.splice(j, 0, n);
       }
     }
@@ -416,7 +427,9 @@ export class ShadyRoot {
       // b. for insertion points (fallback)
       // c. for parents of insertion points
       recordChildNodes(slot);
-      recordChildNodes(slot.parentNode);
+      if (slot.parentNode) {
+        recordChildNodes(slot.parentNode);
+      }
       let name = this._nameForSlot(slot);
       if (this._slotMap[name]) {
         slotNamesToSort = slotNamesToSort || {};
@@ -522,10 +535,7 @@ export class ShadyRoot {
     if (n$) {
       for (let i=0; i<n$.length; i++) {
         let node = n$[i];
-        let parent = parentNode(node);
-        if (parent) {
-          removeChild.call(parent, node);
-        }
+        undistributeNode(node);
       }
     }
     data.flattenedNodes = [];
@@ -553,7 +563,7 @@ export function attachShadow(host, options) {
 }
 
 // Mitigate connect/disconnect spam by wrapping custom element classes.
-if (window['customElements']) {
+if (window['customElements'] && utils.settings.inUse) {
 
   // process connect/disconnect after roots have rendered to avoid
   // issues with reaction stack.
@@ -576,7 +586,13 @@ if (window['customElements']) {
    * state.
    * (2) never run connect/disconnect during rendering to avoid reaction stack issues.
    */
+  const MANAGED_FLAG = '__manageConnectInstalled';
+
   const ManageConnect = (base) => {
+    if (base[MANAGED_FLAG]) {
+      return base;
+    }
+    base[MANAGED_FLAG] = true;
     const connected = base.prototype.connectedCallback;
     const disconnected = base.prototype.disconnectedCallback;
     let counter = 0;
@@ -602,7 +618,7 @@ if (window['customElements']) {
         if (isRendering) {
           // rendering should disconnect only if the element is
           // actually not connected.
-          if (!this.isConnected) {
+          if (!this[connectFlag]) {
             connectMap.set(this, false);
           }
         } else if (this[connectFlag]) {

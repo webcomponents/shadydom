@@ -397,13 +397,10 @@ let InsideAccessors = {
      * @this {HTMLElement}
      */
     get() {
-      if (utils.isTrackingLogicalChildNodes(this)) {
-        const content = this.localName === 'template' ?
-        /** @type {HTMLTemplateElement} */(this).content : this;
-        return getInnerHTML(content);
-      } else {
-        return nativeTree.innerHTML(this);
-      }
+      // NOTE: no fast path is allowable here since innerHTML on nested content may be wrong.
+      const content = this.localName === 'template' ?
+      /** @type {HTMLTemplateElement} */(this).content : this;
+      return getInnerHTML(content);
     },
     /**
      * @this {HTMLElement}

@@ -199,8 +199,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       ShadyDOM.flush();
       assert.deepEqual(window.connectedList, ['imperativeXSlot', 'imperativeXSimple']);
       document.body.removeChild(xSlot);
-      // note: disconnected does not catch undistributed element until these are left in tree
-      assert.deepEqual(window.disconnectedList, ['imperativeXSlot']);
+      assert.deepEqual(window.disconnectedList, ['imperativeXSlot', 'imperativeXSimple']);
     });
 
     test('connect without spurious disconnect when switching slots', function() {
@@ -288,8 +287,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       ShadyDOM.flush();
       assert.deepEqual(window.connectedList, ['imperativeXSlot', 'imperativeXSimple']);
       document.body.removeChild(xSlot);
-      // note: disconnected does not catch undistributed element until these are left in tree
-      assert.deepEqual(window.disconnectedList, ['imperativeXSlot']);
+      assert.deepEqual(window.disconnectedList, ['imperativeXSlot', 'imperativeXSimple']);
     });
 
     test('connect without spurious disconnect when switching slots', function() {

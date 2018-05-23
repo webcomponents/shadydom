@@ -73,12 +73,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     test('render shadowRoot', function() {
       var host = document.querySelector('#host1');
-      assert.strictEqual(getComposedHTML(host), '<div>shadow</div>');
+      assert.strictEqual(ShadyDOM.getComposedHTML(host), '<div>shadow</div>');
     });
 
     test('render slotted content', function() {
       var host = document.querySelector('#host2');
-      assert.strictEqual(getComposedHTML(host), '<div><div slot="a">light</div></div>');
+      assert.strictEqual(ShadyDOM.getComposedHTML(host), '<div><div slot="a">light</div></div>');
     });
 
   });
@@ -90,7 +90,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.skip();
       }
       var host = document.querySelector('#host3');
-      assert.strictEqual(getComposedHTML(host), '<div>shadow</div>');
+      assert.strictEqual(ShadyDOM.getComposedHTML(host), '<div>shadow</div>');
     });
 
     test('render slotted content', function() {
@@ -98,14 +98,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.skip();
       }
       var host = document.querySelector('#host4');
-      assert.strictEqual(getComposedHTML(host), '<div><div slot="a">light</div></div>');
+      assert.strictEqual(ShadyDOM.getComposedHTML(host), '<div><div slot="a">light</div></div>');
     });
 
   });
-
-    function getComposedHTML(node) {
-      return ShadyDOM.nativeTree.innerHTML(node);
-    }
 
   </script>
 </body>

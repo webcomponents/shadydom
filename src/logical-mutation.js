@@ -13,6 +13,7 @@ import * as logicalTree from './logical-tree.js';
 import * as nativeMethods from './native-methods.js';
 import {accessors} from './native-tree.js';
 import {ensureShadyDataForNode, shadyDataForNode} from './shady-data.js';
+import {undistributeNode, ensureNodeDistributable} from './undistribute.js';
 
 const {parentNode} = accessors;
 
@@ -49,7 +50,6 @@ export function insertBefore(parent, node, ref_node) {
     removeChild(node.parentNode, node);
   }
   // add to new parent
-  let preventNativeInsert;
   let ownerRoot;
   let slotsAdded;
   if (!node['__noInsertionPoint']) {
@@ -73,24 +73,28 @@ export function insertBefore(parent, node, ref_node) {
     const parentData = shadyDataForNode(parent);
     if (hasShadowRootWithSlot(parent)) {
       parentData.root._asyncRender();
-      preventNativeInsert = true;
     // when inserting into a host with shadowRoot with NO slot, do nothing
     // as the node should not be added to composed dome anywhere.
-    } else if (parentData.root) {
-      preventNativeInsert = true;
     }
   }
-  if (!preventNativeInsert) {
+  // if ref_node, get the ref_node that's actually in composed dom.
+  if (ref_node) {
+    ref_node = firstComposedNode(ref_node);
+    const refParent = parentNode(ref_node);
+    nativeMethods.insertBefore.call(refParent, node, ref_node);
+  } else {
     // if adding to a shadyRoot, add to host instead
-    let container = utils.isShadyRoot(parent) ?
-      /** @type {ShadowRoot} */(parent).host : parent;
-    // if ref_node, get the ref_node that's actually in composed dom.
-    if (ref_node) {
-      ref_node = firstComposedNode(ref_node);
-      nativeMethods.insertBefore.call(container, node, ref_node);
-    } else {
-      nativeMethods.appendChild.call(container, node);
-    }
+    const container = utils.isShadyRoot(parent) ?
+    /** @type {ShadowRoot} */(parent).host : parent;
+    nativeMethods.appendChild.call(container, node);
+  }
+  // unsure logical parent is unset if it is null so that the parent is correct.
+  // Note, removed nodes with logical parents have their parent set to `null`
+  // and therefore it must be reset here upon insert.
+  // TODO(sorvell): why can't we always unset the logical parent here?
+  const data = shadyDataForNode(node);
+  if (data && data.parentNode == null) {
+    data.parentNode = undefined;
   }
   scheduleObserver(parent, node);
   return node;
@@ -116,11 +120,12 @@ function findContainedSlots(node) {
  * @param {Node} node
 */
 export function removeChild(parent, node) {
-  if (node.parentNode !== parent) {
-    throw Error('The node to be removed is not a child of this node: ' +
-      node);
+  if (!node) {
+    throw Error(`Failed to execute 'removeChild' on 'Node': parameter 1 is not of type 'Node'.`);
   }
-  let preventNativeRemove;
+  if (node.parentNode !== parent) {
+    throw Error(`Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.`);
+  }
   let ownerRoot = utils.ownerShadyRootForNode(node);
   let removingInsertionPoint;
   const parentData = shadyDataForNode(parent);
@@ -128,34 +133,21 @@ export function removeChild(parent, node) {
     logicalTree.recordRemoveChild(node, parent);
     if (hasShadowRootWithSlot(parent)) {
       parentData.root._asyncRender();
-      preventNativeRemove = true;
     }
   }
   removeOwnerShadyRoot(node);
   // if removing slot, must render containing root
   if (ownerRoot) {
     let changeSlotContent = parent && parent.localName === 'slot';
-    if (changeSlotContent) {
-      preventNativeRemove = true;
-    }
     removingInsertionPoint = ownerRoot._removeContainedSlots(node);
     if (removingInsertionPoint || changeSlotContent) {
       ownerRoot._asyncRender();
     }
   }
-  if (!preventNativeRemove) {
-    // if removing from a shadyRoot, remove form host instead
-    let container = utils.isShadyRoot(parent) ?
-      /** @type {ShadowRoot} */(parent).host :
-      parent;
-    // not guaranteed to physically be in container; e.g.
-    // (1) if parent has a shadyRoot, element may or may not at distributed
-    // location (could be undistributed)
-    // (2) if parent is a slot, element may not ben in composed dom
-    if (!(parentData.root || node.localName === 'slot') ||
-      (container === parentNode(node))) {
-      nativeMethods.removeChild.call(container, node);
-    }
+  ensureNodeDistributable(node);
+  const composedParent = parentNode(node);
+  if (composedParent) {
+    nativeMethods.removeChild.call(composedParent, node);
   }
   scheduleObserver(parent, null, node);
   return node;

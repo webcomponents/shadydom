@@ -27,6 +27,8 @@ import {patchBuiltins} from './patch-builtins.js';
 import {patchInsideElementAccessors, patchOutsideElementAccessors} from './patch-accessors.js';
 import {patchEvents} from './patch-events.js';
 import {ShadyRoot} from './attach-shadow.js';
+import {getInnerHTML} from './innerHTML.js';
+import {shadyDataForNode} from './shady-data.js';
 
 if (utils.settings.inUse) {
   let ShadyDOM = {
@@ -52,7 +54,25 @@ if (utils.settings.inUse) {
     'observeChildren': observeChildren,
     'unobserveChildren': unobserveChildren,
     'nativeMethods': nativeMethods,
-    'nativeTree': nativeTree
+    'nativeTree': nativeTree,
+    'getComposedHTML': function(node) {
+      return getInnerHTML(node, (n) => nativeTree.childNodes(n).filter(e => {
+        const d = shadyDataForNode(e);
+        return !d || !d.undistributed;
+      }));
+    },
+    'getComposedChildNodes': function(node) {
+      return nativeTree.childNodes(node).filter(e => {
+        const d = shadyDataForNode(e);
+        return !d || !d.undistributed;
+      });
+    },
+    'getComposedTextContent': function(node) {
+      return node.nodeType === Node.ELEMENT_NODE ? nativeTree.childNodes(node).filter(e => {
+        const d = shadyDataForNode(e);
+        return !d || !d.undistributed;
+      }).map(n => ShadyDOM.getComposedTextContent(n)).join('') : node.textContent;
+    }
   };
 
   window['ShadyDOM'] = ShadyDOM;
