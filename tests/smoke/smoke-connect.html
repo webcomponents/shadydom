@@ -21,14 +21,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <button id="toggleSlotButton">1. toggleSlot</button>
     <button id="toggleChildButton">2. toggleChild</button>
     <hr>
-    <x-distributes id="dist"><x-child id="child">child</x-child></x-distributes>
+    <x-distributes id="dist"><x-child id="child" slot="a">child</x-child></x-distributes>
 
     <script>
       customElements.define('x-distributes', class extends HTMLElement {
         connectedCallback() {
           console.log(`${this.localName}: connected`);
           this.attachShadow({mode: 'open'}).innerHTML =
-            `[<span><slot id="slot"></span></slot>]`
+            `[<span><slot id="slot" name="a"></slot></span>]`;
         }
       });
       customElements.define('x-child', class extends HTMLElement {

@@ -77,6 +77,10 @@ export function insertBefore(parent, node, ref_node) {
     // as the node should not be added to composed dome anywhere.
     }
   }
+  // hide node if it's a child of a host with a shadowRoot
+  if (parent.shadowRoot) {
+    undistributeNode(node);
+  }
   // if ref_node, get the ref_node that's actually in composed dom.
   if (ref_node) {
     ref_node = firstComposedNode(ref_node);
