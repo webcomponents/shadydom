@@ -70,16 +70,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       Klass.prototype.disconnectedCallback = function() {
         window.disconnectedList.push(this.id);
-        if (!this._initialized) {
-          this._initialized = true;
-          if (connected) {
-            connected.call(this);
-          }
-          if (template) {
-            this.attachShadow({mode: 'open'});
-            this.shadowRoot.appendChild(document.importNode(template.content, true));
-          }
-        }
       }
 
       addEventListener('DOMContentLoaded', function() {
@@ -249,6 +239,98 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       const e2 = e.shadowRoot.querySelector('#x3');
       assert.deepEqual(e2.connectedList, []);
       document.body.removeChild(e);
+    });
+
+    test('add/remove slot does not trigger connect/disconnect for host children', function() {
+      const xSlot = document.createElement('x-slot');
+      xSlot.id = 'imperativeXSlot';
+      const xSimple = document.createElement('x-simple');
+      xSimple.id = 'imperativeXSimple';
+      xSlot.appendChild(xSimple);
+      document.body.appendChild(xSlot);
+      ShadyDOM.flush();
+      window.connectedList.length = 0;
+      window.disconnectedList.length = 0;
+      const slot = xSlot.shadowRoot.querySelector('slot');
+      assert.ok(slot);
+      const slotParent = slot.parentNode;
+      slotParent.removeChild(slot);
+      ShadyDOM.flush();
+      assert.equal(window.connectedList.length, 0);
+      assert.equal(window.disconnectedList.length, 0);
+      slotParent.appendChild(slot);
+      ShadyDOM.flush();
+      assert.equal(window.connectedList.length, 0);
+      assert.equal(window.disconnectedList.length, 0);
+      document.body.removeChild(xSlot);
+    });
+
+    test('change slot name does not trigger connect/disconnect for host children', function() {
+      const xSlot = document.createElement('x-slot');
+      xSlot.id = 'imperativeXSlot';
+      const xSimple = document.createElement('x-simple');
+      xSimple.id = 'imperativeXSimple';
+      xSlot.appendChild(xSimple);
+      document.body.appendChild(xSlot);
+      ShadyDOM.flush();
+      window.connectedList.length = 0;
+      window.disconnectedList.length = 0;
+      const slot = xSlot.shadowRoot.querySelector('slot');
+      assert.ok(slot);
+      slot.setAttribute('name', 'foo');
+      ShadyDOM.flush();
+      assert.equal(window.connectedList.length, 0);
+      assert.equal(window.disconnectedList.length, 0);
+      slot.setAttribute('name', '');
+      ShadyDOM.flush();
+      assert.equal(window.connectedList.length, 0);
+      assert.equal(window.disconnectedList.length, 0);
+      document.body.removeChild(xSlot);
+    });
+
+    test('add/remove child triggers connect/disconnect when undistributed (no slot)', function() {
+      const xHost = document.createElement('x-simple');
+      xHost.id = 'xHost';
+      const xSimple = document.createElement('x-simple');
+      xSimple.id = 'xSimple';
+      xHost.appendChild(xSimple);
+      document.body.appendChild(xHost);
+      ShadyDOM.flush();
+      window.connectedList.length = 0;
+      window.disconnectedList.length = 0;
+      xHost.removeChild(xSimple);
+      ShadyDOM.flush();
+      assert.equal(window.connectedList.length, 0);
+      assert.deepEqual(window.disconnectedList, ['xSimple']);
+      xHost.appendChild(xSimple);
+      ShadyDOM.flush();
+      assert.deepEqual(window.connectedList, ['xSimple']);
+      assert.deepEqual(window.disconnectedList, ['xSimple']);
+      document.body.removeChild(xHost);
+    });
+
+    test('add/remove child triggers connect/disconnect when undistributed (not slotted)', function() {
+      const xHost = document.createElement('x-slot');
+      xHost.id = 'xHost';
+      const xSimple = document.createElement('x-simple');
+      xSimple.id = 'xSimple';
+      xHost.appendChild(xSimple);
+      document.body.appendChild(xHost);
+      const slot = xHost.shadowRoot.querySelector('slot');
+      assert.ok(slot);
+      slot.setAttribute('name', 'foo');
+      ShadyDOM.flush();
+      window.connectedList.length = 0;
+      window.disconnectedList.length = 0;
+      xHost.removeChild(xSimple);
+      ShadyDOM.flush();
+      assert.equal(window.connectedList.length, 0);
+      assert.deepEqual(window.disconnectedList, ['xSimple']);
+      xHost.appendChild(xSimple);
+      ShadyDOM.flush();
+      assert.deepEqual(window.connectedList, ['xSimple']);
+      assert.deepEqual(window.disconnectedList, ['xSimple']);
+      document.body.removeChild(xHost);
     });
 
   });

@@ -511,6 +511,7 @@ export class ShadyRoot {
     if (!this._slotList) {
       return;
     }
+    this._validateSlots();
     const oldName = slot.__slotName;
     const name = this._nameForSlot(slot);
     if (name === oldName) {
