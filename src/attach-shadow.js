@@ -76,9 +76,16 @@ export class ShadyRoot {
     this._pendingSlots = null;
     this._initialChildren = null;
     // fast path initial render: remove existing physical dom.
-    recordChildNodes(host, childNodes(host));
+    const c$ = childNodes(host);
+    recordChildNodes(host, c$);
     this._createdWhileLoading = document.readyState === 'loading';
-    this._asyncRender();
+    if (this._createdWhileLoading) {
+      this._asyncRender();
+    } else {
+      for (let i=0; i < c$.length; i++) {
+        undistributeNode(c$[i]);
+      }
+    }
   }
 
   // async render
@@ -132,29 +139,23 @@ export class ShadyRoot {
     this._renderPending = false;
     // If created while loading, then light children are potentially incorrect
     // so we fix them here (note, this needs to be before distribution)
-    if (!this._hasRendered && this._createdWhileLoading) {
+    if (this._createdWhileLoading && !this._hasRendered) {
       // reset logical tracking because this is incorrect when created while loading.
       const nodeData = shadyDataForNode(this.host);
       nodeData.firstChild = undefined;
       const c$ = childNodes(this.host).filter((child) => {
-        return ensureShadyDataForNode(child).parentNode !== this;
+        const lightDom = ensureShadyDataForNode(child).parentNode !== this;
+        // remove any undistributed children.
+        if (lightDom) {
+          undistributeNode(child);
+        }
+        return lightDom;
       });
       recordChildNodes(this.host, c$);
     }
     if (this._slotList) {
       this._distribute();
       this._compose();
-    }
-    // on initial render remove any undistributed children.
-    if (!this._hasRendered) {
-      const c$ = this.host.childNodes;
-      for (let i=0, l=c$.length; i < l; i++) {
-        const child = c$[i];
-        const data = shadyDataForNode(child);
-        if (parentNode(child) === this.host && !data.assignedSlot) {
-          undistributeNode(child);
-        }
-      }
     }
     this._hasRendered = true;
     isRendering = wasRendering;

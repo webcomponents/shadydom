@@ -420,8 +420,10 @@ let InsideAccessors = {
       } else {
         htmlContainer.innerHTML = text;
       }
-      while (htmlContainer.firstChild) {
-        content.appendChild(htmlContainer.firstChild);
+      let child = htmlContainer.firstChild;
+      while (child) {
+        content.appendChild(child);
+        child = htmlContainer.firstChild;
       }
     },
     configurable: true

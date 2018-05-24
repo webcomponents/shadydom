@@ -77,10 +77,6 @@ export function insertBefore(parent, node, ref_node) {
     // as the node should not be added to composed dome anywhere.
     }
   }
-  // hide node if it's a child of a host with a shadowRoot
-  if (parent.shadowRoot) {
-    undistributeNode(node);
-  }
   // if ref_node, get the ref_node that's actually in composed dom.
   if (ref_node) {
     ref_node = firstComposedNode(ref_node);
@@ -91,6 +87,10 @@ export function insertBefore(parent, node, ref_node) {
     const container = utils.isShadyRoot(parent) ?
     /** @type {ShadowRoot} */(parent).host : parent;
     nativeMethods.appendChild.call(container, node);
+  }
+  // hide node if it's a child of a host with a shadowRoot
+  if (parent.shadowRoot) {
+    undistributeNode(node);
   }
   // unsure logical parent is unset if it is null so that the parent is correct.
   // Note, removed nodes with logical parents have their parent set to `null`
