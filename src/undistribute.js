@@ -10,11 +10,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 import {ensureShadyDataForNode} from './shady-data.js';
 import {removeChild} from './native-methods.js';
 import {accessors} from './native-tree.js';
+import {UNDISTRIBUTED_ATTR} from './utils.js';
 
 const {parentNode} = accessors;
 
 // Add stylesheet for hiding undistributed nodes
-export const UNDISTRIBUTED_ATTR = 'shadydom-undistributed';
 const style = document.createElement('style');
 style.textContent = `[${UNDISTRIBUTED_ATTR}] { display: none !important; }`;
 document.head.appendChild(style);
@@ -23,17 +23,19 @@ document.head.appendChild(style);
 // prefer hiding them when possible.
 export function undistributeNode(node) {
   switch (node.nodeType) {
-    case Node.TEXT_NODE:
+    case Node.TEXT_NODE: {
       const parent = parentNode(node);
       if (parent) {
         removeChild.call(parent, node);
       }
       break;
-    case Node.ELEMENT_NODE:
+    }
+    case Node.ELEMENT_NODE: {
       const data = ensureShadyDataForNode(node);
       data.undistributed = true;
       node.setAttribute(UNDISTRIBUTED_ATTR, '');
       break;
+    }
   }
 }
 

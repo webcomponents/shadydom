@@ -35,14 +35,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     test('mutation observer sees nodes in observed scope', function(done) {
       var d = document.createElement('div');
+      const addedNode = document.createElement('div');
       makeShadowRootWithSlot(d);
+      // NOTE: number of mutations may be incorrect but out of scope info should be filtered out.
       new MutationObserver(function(mutations) {
         mutations = ShadyDOM.filterMutations(mutations, d);
-        assert.equal(mutations.length, 1);
         assert.equal(mutations[0].addedNodes.length, 1);
+        assert.equal(mutations[0].addedNodes[0], addedNode);
         done();
       }).observe(d, {childList: true});
-      d.appendChild(document.createElement('div'));
+      d.appendChild(addedNode);
     });
 
     test('mutation observer does not see nodes outside observed scope', function(done) {

@@ -7,6 +7,7 @@ The complete set of contributors may be found at http://polymer.github.io/CONTRI
 Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 */
+import {UNDISTRIBUTED_ATTR} from './utils.js';
 
 // Cribbed from ShadowDOM polyfill
 // https://github.com/webcomponents/webcomponentsjs/blob/master/src/ShadowDOM/wrappers/HTMLElement.js#L28
@@ -16,6 +17,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 // http://www.whatwg.org/specs/web-apps/current-work/multipage/the-end.html#escapingString
 let escapeAttrRegExp = /[&\u00A0"]/g;
 let escapeDataRegExp = /[&\u00A0<>]/g;
+
 
 function escapeReplace(c) {
   switch (c) {
@@ -91,7 +93,9 @@ export function getOuterHTML(node, parentNode, callback) {
       let s = '<' + tagName;
       let attrs = node.attributes;
       for (let i = 0, attr; (attr = attrs[i]); i++) {
-        s += ' ' + attr.name + '="' + escapeAttr(attr.value) + '"';
+        if (attr.name !== UNDISTRIBUTED_ATTR) {
+          s += ' ' + attr.name + '="' + escapeAttr(attr.value) + '"';
+        }
       }
       s += '>';
       if (voidElements[tagName]) {

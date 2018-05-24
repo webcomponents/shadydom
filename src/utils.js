@@ -18,6 +18,8 @@ let desc = Object.getOwnPropertyDescriptor(Node.prototype, 'firstChild');
 settings.hasDescriptors = Boolean(desc && desc.configurable && desc.get);
 settings.inUse = settings['force'] || !settings.hasNativeShadowDOM;
 
+export const UNDISTRIBUTED_ATTR = 'shadydom-undistributed';
+
 // Default to using native accessors (instead of treewalker) only for
 // IE/Edge where they are faster.
 const IS_IE = navigator.userAgent.match('Trident');
