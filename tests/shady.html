@@ -546,6 +546,7 @@ suite('Patch of form-listed elements', function() {
   const FORM_LISTED_ELEMENTS = 'select,option,fieldset,input,textarea,button';
   const FORM_RESETTABLE_ELEMENTS = 'select,input,textarea';
 
+  let iframe;
   let form;
   let shadowRoot;
   let formLightDom;
@@ -574,7 +575,10 @@ suite('Patch of form-listed elements', function() {
 
     const fieldset = ShadyDOM.patch(document.createElement('fieldset'));
     fieldset.appendChild(document.createElement('legend'));
-    fieldset.appendChild(ShadyDOM.patch(document.createElement('input')));
+
+    const input = ShadyDOM.patch(document.createElement('input'));
+    input.setAttribute('name', 'input');
+    fieldset.appendChild(input);
     fieldset.appendChild(document.createElement('label'));
     fieldset.setAttribute('id', 'fields');
     container.appendChild(fieldset);
@@ -585,11 +589,23 @@ suite('Patch of form-listed elements', function() {
     return container;
   }
 
-  setup(function() {
+  setup(function(done) {
     if (!canDefineFormAccessors) {
       this.skip();
     }
     form = ShadyDOM.patch(document.createElement('form'));
+    form.setAttribute('action', 'form-output.html');
+    form.setAttribute('method', 'GET');
+
+
+    iframe = document.createElement('iframe');
+    iframe.src = 'form-iframe.html';
+    iframe.onload = function() {
+      iframe.contentDocument.body.appendChild(form);
+      iframe.onload = undefined;
+      done();
+    };
+    document.body.appendChild(iframe);
 
     const shadowContainer = document.createElement('div');
     shadowRoot = shadowContainer.attachShadow({mode: 'open'});
@@ -599,6 +615,10 @@ suite('Patch of form-listed elements', function() {
     form.appendChild(createFormElements());
 
     formLightDom = form.querySelectorAll(FORM_LISTED_ELEMENTS);
+  });
+
+  teardown(function() {
+    document.body.removeChild(iframe);
   });
 
   test('elements in shadowRoot have null form property', function() {
@@ -704,6 +724,61 @@ suite('Patch of form-listed elements', function() {
     // Therefore we can't just check for the raw value, but have
     // to assert on the firstChild content instead
     assert.equal(textarea.value, textarea.firstChild.textContent);
+  });
+
+  test('skips elements in shadowroot for form submission', function(done) {
+    const value = 'option2';
+
+    shadowRoot.querySelector('select').value = value;
+    shadowRoot.querySelector('input').value = value;
+
+    iframe.addEventListener('load', () => {
+      const params = new URLSearchParams(iframe.contentWindow.location.search);
+      assert.equal(params.get('selector'), 'option1');
+      assert.equal(params.get('input'), '');
+      done();
+    })
+
+    form.submit();
+  });
+
+  test('serializes light dom elements for form submission', function(done) {
+    const value = 'option2';
+
+    shadowRoot.querySelector('select').value = value;
+    shadowRoot.querySelector('input').value = value;
+    form.querySelector('select').value = value;
+    form.querySelector('input').value = value;
+
+    iframe.addEventListener('load', () => {
+      const params = new URLSearchParams(iframe.contentWindow.location.search);
+      assert.equal(params.get('selector'), value);
+      assert.equal(params.get('input'), value);
+      done();
+    })
+
+    form.submit();
+  });
+
+  test('disabled shadowroot elements remain disabled after form submission', function(done) {
+    const select = shadowRoot.querySelector('select');
+    select.disabled = true;
+
+    iframe.addEventListener('load', () => {
+      assert.isTrue(select.disabled);
+      done();
+    })
+
+    form.submit();
+  });
+
+  test('shadowroot elements are no longer disabled after form submission', function(done) {
+    iframe.addEventListener('load', () => {
+      assert.isFalse(shadowRoot.querySelector('select').disabled);
+      done();
+    })
+
+    form.submit();
   });
 });
 

@@ -211,12 +211,12 @@ export const FORM_RESETTABLE_ELEMENTS = {
   ['textarea']: true
 };
 
-function acceptNodeForList(list) {
+function acceptNodeForList(list, shouldAcceptShadowRoot) {
   function acceptNode(node) {
     if (list[node.localName]) {
       return NodeFilter.FILTER_ACCEPT;
     }
-    if (node.shadowRoot) {
+    if (!shouldAcceptShadowRoot && node.shadowRoot) {
       return NodeFilter.FILTER_REJECT;
     }
     return NodeFilter.FILTER_SKIP;
@@ -241,10 +241,19 @@ const formResettableElementNodeWalker = document.createTreeWalker(
   false
 );
 
+const formListedElementInShadowRootNodeWalker = document.createTreeWalker(
+  document,
+  NodeFilter.SHOW_ELEMENT,
+  acceptNodeForList(FORM_LISTED_ELEMENTS, true),
+  false
+);
+
+const formSubmissionDescriptor = Object.getOwnPropertyDescriptor(window.HTMLFormElement.prototype, 'submit');
+
 const FormAccessors = {
   elements: {
     /**
-     * @this {HTMLElement}
+     * @this {HTMLFormElement}
      */
     get() {
       const elements = [];
@@ -273,7 +282,7 @@ const FormAccessors = {
   },
   length: {
     /**
-     * @this {HTMLElement}
+     * @this {HTMLFormElement}
      */
     get() {
       return this.elements.length;
@@ -281,6 +290,9 @@ const FormAccessors = {
     configurable: true
   },
   reset: {
+    /**
+     * @this {HTMLFormElement}
+     */
     value() {
       formResettableElementNodeWalker.currentNode = this;
 
@@ -298,6 +310,33 @@ const FormAccessors = {
           currentNode.value = currentNode.firstChild && currentNode.firstChild.textContent || '';
         }
       }
+    },
+    configurable: true
+  },
+  submit: {
+    /**
+     * @this {HTMLFormElement}
+     */
+    value() {
+      const disabledElements = [];
+      formListedElementInShadowRootNodeWalker.currentNode = this;
+
+      while (formListedElementInShadowRootNodeWalker.nextNode()) {
+        const element = formListedElementInShadowRootNodeWalker.currentNode;
+
+        if (element.form !== this) {
+          disabledElements.push([element, element.disabled]);
+          element.disabled = true;
+        }
+      }
+
+      const returnValue = formSubmissionDescriptor.value.apply(this);
+
+      for (const [element, oldDisabled] of disabledElements) {
+        element.disabled = oldDisabled;
+      }
+
+      return returnValue;
     },
     configurable: true
   }
