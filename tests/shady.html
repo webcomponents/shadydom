@@ -761,7 +761,11 @@ suite('Patch of form-listed elements', function() {
     select.disabled = true;
 
     iframe.addEventListener('load', () => {
-      assert.isTrue(select.disabled);
+      // In Edge/IE we are no longer allowed to touch `select` here.
+      // In that case, it is no longer a valid HTMLSelectElement either.
+      if (select instanceof HTMLSelectElement) {
+        assert.isTrue(select.disabled);
+      }
       done();
     })
 
@@ -769,8 +773,14 @@ suite('Patch of form-listed elements', function() {
   });
 
   test('shadowroot elements are no longer disabled after form submission', function(done) {
+    const select = shadowRoot.querySelector('select')
+
     iframe.addEventListener('load', () => {
-      assert.isFalse(shadowRoot.querySelector('select').disabled);
+      // In Edge/IE we are no longer allowed to touch `select` here.
+      // In that case, it is no longer a valid HTMLSelectElement either.
+      if (select instanceof HTMLSelectElement) {
+        assert.isFalse(select.disabled);
+      }
       done();
     })
 
