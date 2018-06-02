@@ -211,6 +211,11 @@ export const FORM_RESETTABLE_ELEMENTS = {
   ['textarea']: true
 };
 
+/**
+ * @param  {!Object<string, boolean>} list
+ * @param  {boolean=} shouldAcceptShadowRoot
+ * @return {!NodeFilter}
+ */
 function acceptNodeForList(list, shouldAcceptShadowRoot) {
   function acceptNode(node) {
     if (list[node.localName]) {
@@ -224,7 +229,7 @@ function acceptNodeForList(list, shouldAcceptShadowRoot) {
   // IE11 wants a function as argument, but other browsers want
   // an object with as `acceptNode` property the function
   acceptNode.acceptNode = acceptNode;
-  return acceptNode;
+  return /** @type {!NodeFilter} */ (acceptNode);
 }
 
 const formListedElementNodeWalker = document.createTreeWalker(
@@ -294,7 +299,7 @@ const FormAccessors = {
      * @this {HTMLFormElement}
      */
     value() {
-      formResettableElementNodeWalker.currentNode = this;
+      formResettableElementNodeWalker.currentNode = /** @type {HTMLElement} */ (this);
 
       while (formResettableElementNodeWalker.nextNode()) {
         const currentNode = formResettableElementNodeWalker.currentNode;
@@ -303,7 +308,8 @@ const FormAccessors = {
           currentNode.value = currentNode.getAttribute('value') || '';
           currentNode.checked = currentNode.hasAttribute('checked');
         } else if (currentNode.localName === 'select') {
-          for (const option of currentNode.options) {
+          const select = /** @type {HTMLSelectElement} */ (currentNode);
+          for (const option of select.options) {
             option.selected = option.getAttribute('selected');
           }
         } else if (currentNode.localName === 'textarea') {
@@ -319,10 +325,10 @@ const FormAccessors = {
      */
     value() {
       const disabledElements = [];
-      formListedElementInShadowRootNodeWalker.currentNode = this;
+      formListedElementInShadowRootNodeWalker.currentNode = /** @type {HTMLElement} */ (this);
 
       while (formListedElementInShadowRootNodeWalker.nextNode()) {
-        const element = formListedElementInShadowRootNodeWalker.currentNode;
+        const element = /** @type {HTMLIsIndexElement} */ (formListedElementInShadowRootNodeWalker.currentNode);
 
         if (element.form !== this) {
           disabledElements.push([element, element.disabled]);
