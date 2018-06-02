@@ -733,9 +733,7 @@ suite('Patch of form-listed elements', function() {
     shadowRoot.querySelector('input').value = value;
 
     iframe.addEventListener('load', () => {
-      const params = new URLSearchParams(iframe.contentWindow.location.search);
-      assert.equal(params.get('selector'), 'option1');
-      assert.equal(params.get('input'), '');
+      assert.equal(iframe.contentWindow.location.search, `?selector=option1&input=`)
       done();
     })
 
@@ -751,9 +749,7 @@ suite('Patch of form-listed elements', function() {
     form.querySelector('input').value = value;
 
     iframe.addEventListener('load', () => {
-      const params = new URLSearchParams(iframe.contentWindow.location.search);
-      assert.equal(params.get('selector'), value);
-      assert.equal(params.get('input'), value);
+      assert.equal(iframe.contentWindow.location.search, `?selector=${value}&input=${value}`)
       done();
     })
 
