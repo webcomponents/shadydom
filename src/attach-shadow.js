@@ -366,7 +366,7 @@ class ShadyRoot {
       next = composed[s.index];
       for (let j=s.index, n; j < s.index + s.addedCount; j++) {
         n = children[j];
-        insertBefore.call(container, n, next);
+        container.insertBefore(n, next);
         composed.splice(j, 0, n);
       }
     }
