@@ -142,89 +142,89 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         containerDiv.querySelector('slotting-element').appendChild(customElement);
         assert.equal(containerDiv.querySelector('custom-element').upgraded, true);
       });
-    });
 
-    suite('querying slots for assignedNodes in constructors', function () {
-      let innerTemplate = document.querySelector('template#innerTemplate');
-      let outerTemplate = document.querySelector('template#outerTemplate');
-      let outerWithChildTemplate = document.querySelector('template#outerWithChildTemplate');
+      suite('querying slots for assignedNodes in constructors', function () {
+        let innerTemplate = document.querySelector('template#innerTemplate');
+        let outerTemplate = document.querySelector('template#outerTemplate');
+        let outerWithChildTemplate = document.querySelector('template#outerWithChildTemplate');
 
-      let nodeLength = 0;
+        let nodeLength = 0;
 
-      class InnerElement extends HTMLElement {
-        constructor() {
-          super();
-          const clone = document.importNode(innerTemplate.content, true);
-          this.attachShadow({ mode: 'open' });
-          this.shadowRoot.appendChild(clone);
-          const slot = this.shadowRoot.querySelector('slot');
-          const nodes = slot.assignedNodes({ flatten: true });
-          nodeLength = nodes.length;
+        class InnerElement extends HTMLElement {
+          constructor() {
+            super();
+            const clone = document.importNode(innerTemplate.content, true);
+            this.attachShadow({ mode: 'open' });
+            this.shadowRoot.appendChild(clone);
+            const slot = this.shadowRoot.querySelector('slot');
+            const nodes = slot.assignedNodes({ flatten: true });
+            nodeLength = nodes.length;
+          }
         }
-      }
-      customElements.define('inner-element', InnerElement);
+        customElements.define('inner-element', InnerElement);
 
-      class OuterElement extends HTMLElement {
-        constructor() {
-          super();
-          const clone = document.importNode(outerTemplate.content, true);
-          this.attachShadow({ mode: 'open' });
-          this.shadowRoot.appendChild(clone);
+        class OuterElement extends HTMLElement {
+          constructor() {
+            super();
+            const clone = document.importNode(outerTemplate.content, true);
+            this.attachShadow({ mode: 'open' });
+            this.shadowRoot.appendChild(clone);
+          }
         }
-      }
-      customElements.define('outer-element', OuterElement);
+        customElements.define('outer-element', OuterElement);
 
-      test('querying for assignedNodes in constructor does not throw', function () {
-        assert.doesNotThrow(() => {
-          el = document.createElement('outer-element');
+        test('querying for assignedNodes in constructor does not throw', function () {
+          assert.doesNotThrow(() => {
+            el = document.createElement('outer-element');
+          });
+          assert.isAbove(nodeLength, 0)
         });
-        assert.isAbove(nodeLength, 0)
+
+        test('querying for flattened assignedNodes correct after accessing in constructor', function () {
+          const dom = document.importNode(outerWithChildTemplate.content, true);
+          const outer = dom.querySelector('outer-element');
+          const inner = outer.shadowRoot.querySelector('inner-element')
+          const innerSlot = inner.shadowRoot.querySelector('slot');
+          assert.equal(nodeLength, 2);
+          // NOTE: accessing assignedNodes here causes needs to flush the
+          // rendering of the entire distribution tree. In this case, inner
+          // is not dirty, but outer is.
+          assert.equal(innerSlot.assignedNodes({ flatten: true }).length, 3);
+        });
       });
 
-      test('querying for flattened assignedNodes correct after accessing in constructor', function () {
-        const dom = document.importNode(outerWithChildTemplate.content, true);
-        const outer = dom.querySelector('outer-element');
-        const inner = outer.shadowRoot.querySelector('inner-element')
-        const innerSlot = inner.shadowRoot.querySelector('slot');
-        assert.equal(nodeLength, 2);
-        // NOTE: accessing assignedNodes here causes needs to flush the
-        // rendering of the entire distribution tree. In this case, inner
-        // is not dirty, but outer is.
-        assert.equal(innerSlot.assignedNodes({ flatten: true }).length, 3);
-      });
-    });
-
-    test('nested slots work with template innerHTML', function () {
-      class InnerInlineElement extends HTMLElement {
-        constructor() {
-          super();
-          const template = document.createElement('template');
-          template.innerHTML = '<slot></slot>';
-          const clone = document.importNode(template.content, true);
-          this.attachShadow({ mode: 'open' });
-          this.shadowRoot.appendChild(clone);
+      test('nested slots work with template innerHTML', function () {
+        class InnerInlineElement extends HTMLElement {
+          constructor() {
+            super();
+            const template = document.createElement('template');
+            template.innerHTML = '<slot></slot>';
+            const clone = document.importNode(template.content, true);
+            this.attachShadow({ mode: 'open' });
+            this.shadowRoot.appendChild(clone);
+          }
         }
-      }
-      customElements.define('inner-inline-element', InnerInlineElement);
+        customElements.define('inner-inline-element', InnerInlineElement);
 
-      class OuterInlineElement extends HTMLElement {
-        constructor() {
-          super();
-          const template = document.createElement('template');
-          template.innerHTML = '<inner-inline-element><slot></slot></inner-inline-element>';
-          const clone = document.importNode(template.content, true);
-          this.attachShadow({ mode: 'open' });
-          this.shadowRoot.appendChild(clone);
+        class OuterInlineElement extends HTMLElement {
+          constructor() {
+            super();
+            const template = document.createElement('template');
+            template.innerHTML = '<inner-inline-element><slot></slot></inner-inline-element>';
+            const clone = document.importNode(template.content, true);
+            this.attachShadow({ mode: 'open' });
+            this.shadowRoot.appendChild(clone);
+          }
         }
-      }
-      customElements.define('outer-inline-element', OuterInlineElement);
+        customElements.define('outer-inline-element', OuterInlineElement);
 
-      assert.doesNotThrow(() => {
-        const outer = document.createElement('outer-inline-element');
-        outer.innerHTML = `<div>Hello</div>`;
-        if (window.ShadyDOM) {
-          window.ShadyDOM.flush();
-        }
+        assert.doesNotThrow(() => {
+          const outer = document.createElement('outer-inline-element');
+          outer.innerHTML = `<div>Hello</div>`;
+          if (window.ShadyDOM) {
+            window.ShadyDOM.flush();
+          }
+        });
       });
     });
   </script>
