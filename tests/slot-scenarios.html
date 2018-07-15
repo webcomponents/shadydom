@@ -67,11 +67,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   </template>
 
   <template id="outerWithChildTemplate">
-    <outer-element>
-      <div></div>
-    </outer-element>
+    <outer-element><div></div></outer-element>
   </template>
-
+  
   <template id="slottingElementTemplate">
     <slotting-element></slotting-element>
   </template>
@@ -82,6 +80,32 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
   <script>
     suite('Slot distribution in various scenarios', function () {
+      test('custom elements distributed in slots are upgraded', function () {
+        class SlottingElement extends HTMLElement {
+          connectedCallback() {
+            this.attachShadow({ mode: 'open' });
+            this.shadowRoot.innerHTML = `<slot></slot>`;
+          }
+        }
+
+        class CustomElement extends HTMLElement {
+          constructor() {
+            super();
+            this.upgraded = true;
+          }
+        }
+
+        customElements.define('slotting-element', SlottingElement);
+        customElements.define('custom-element', CustomElement);
+
+        const containerDiv = document.createElement('div');
+        const slottingElementTemplate = document.querySelector('#slottingElementTemplate');
+        const customElementTemplate = document.querySelector('#customElementTemplate');
+        document.body.appendChild(containerDiv);
+        containerDiv.appendChild(document.importNode(slottingElementTemplate.content, true));
+        containerDiv.querySelector('slotting-element').appendChild(document.importNode(customElementTemplate.content, true));
+        assert.equal(containerDiv.querySelector('custom-element').upgraded, true);
+      });
       test('slot distribution is not interrupted by events', function (done) {
         let innerTemplate = document.querySelector('template#inner');
         let outerTemplate = document.querySelector('template#outer');
@@ -116,33 +140,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         });
       });
 
-      test('custom elements distributed in slots are upgraded', function () {
-        class SlottingElement extends HTMLElement {
-          connectedCallback() {
-            this.attachShadow({ mode: 'open' });
-            this.shadowRoot.innerHTML = `<slot></slot>`;
-          }
-        }
-
-        class CustomElement extends HTMLElement {
-          constructor() {
-            super();
-            this.upgraded = true;
-          }
-        }
-
-        customElements.define('slotting-element', SlottingElement);
-        customElements.define('custom-element', CustomElement);
-
-        const containerDiv = document.createElement('div');
-        const slottingElement = document.querySelector('#slottingElementTemplate').content.cloneNode(true);
-        const customElement = document.querySelector('#customElementTemplate').content.cloneNode(true);
-        document.body.appendChild(containerDiv);
-        containerDiv.appendChild(slottingElement);
-        containerDiv.querySelector('slotting-element').appendChild(customElement);
-        assert.equal(containerDiv.querySelector('custom-element').upgraded, true);
-      });
-
       suite('querying slots for assignedNodes in constructors', function () {
         let innerTemplate = document.querySelector('template#innerTemplate');
         let outerTemplate = document.querySelector('template#outerTemplate');
@@ -173,14 +170,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
         customElements.define('outer-element', OuterElement);
 
-        test('querying for assignedNodes in constructor does not throw', function () {
+        test('querying for assignedNodes in constructor does not throw', function() {
           assert.doesNotThrow(() => {
             el = document.createElement('outer-element');
           });
           assert.isAbove(nodeLength, 0)
         });
 
-        test('querying for flattened assignedNodes correct after accessing in constructor', function () {
+        test('querying for flattened assignedNodes correct after accessing in constructor', function() {
           const dom = document.importNode(outerWithChildTemplate.content, true);
           const outer = dom.querySelector('outer-element');
           const inner = outer.shadowRoot.querySelector('inner-element')
@@ -189,7 +186,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           // NOTE: accessing assignedNodes here causes needs to flush the
           // rendering of the entire distribution tree. In this case, inner
           // is not dirty, but outer is.
-          assert.equal(innerSlot.assignedNodes({ flatten: true }).length, 3);
+          assert.equal(innerSlot.assignedNodes({flatten: true}).length, 3);
         });
       });
 
@@ -225,7 +222,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             window.ShadyDOM.flush();
           }
         });
-      });
-    });
+      })
+    })
   </script>
 </body>
