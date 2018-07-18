@@ -67,11 +67,45 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   </template>
 
   <template id="outerWithChildTemplate">
-      <outer-element><div></div></outer-element>
-    </template>
+    <outer-element><div></div></outer-element>
+  </template>
+  
+  <template id="slottingElementTemplate">
+    <slotting-element></slotting-element>
+  </template>
+
+  <template id="customElementTemplate">
+    <custom-element></custom-element>
+  </template>
 
   <script>
     suite('Slot distribution in various scenarios', function () {
+      test('custom elements distributed in slots are upgraded', function () {
+        class SlottingElement extends HTMLElement {
+          connectedCallback() {
+            this.attachShadow({ mode: 'open' });
+            this.shadowRoot.innerHTML = `<slot></slot>`;
+          }
+        }
+
+        class CustomElement extends HTMLElement {
+          constructor() {
+            super();
+            this.upgraded = true;
+          }
+        }
+
+        customElements.define('slotting-element', SlottingElement);
+        customElements.define('custom-element', CustomElement);
+
+        const containerDiv = document.createElement('div');
+        const slottingElementTemplate = document.querySelector('#slottingElementTemplate');
+        const customElementTemplate = document.querySelector('#customElementTemplate');
+        document.body.appendChild(containerDiv);
+        containerDiv.appendChild(document.importNode(slottingElementTemplate.content, true));
+        containerDiv.querySelector('slotting-element').appendChild(document.importNode(customElementTemplate.content, true));
+        assert.equal(containerDiv.querySelector('custom-element').upgraded, true);
+      });
       test('slot distribution is not interrupted by events', function (done) {
         let innerTemplate = document.querySelector('template#inner');
         let outerTemplate = document.querySelector('template#outer');
