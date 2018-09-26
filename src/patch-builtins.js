@@ -23,6 +23,7 @@ function getAssignedSlot(node) {
   return nodeData && nodeData.assignedSlot || null;
 }
 
+/** @suppress {checkTypes} */
 let windowMixin = {
 
   // NOTE: ensure these methods are bound to `window` so that `this` is correct

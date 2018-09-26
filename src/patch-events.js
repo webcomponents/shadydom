@@ -350,7 +350,9 @@ export function addEventListener(type, fnOrObj, optionsOrCapture) {
       nativeMethods.addEventListener;
 
   if (unpatchedEvents[type]) {
-    return ael.call(this, type, fnOrObj, optionsOrCapture);
+    /** @suppress {checkTypes} */
+    const output = ael.call(this, type, fnOrObj, optionsOrCapture);
+    return output;
   }
 
   // The callback `fn` might be used for multiple nodes/events. Since we generate
@@ -456,12 +458,15 @@ export function addEventListener(type, fnOrObj, optionsOrCapture) {
       {'capture': [], 'bubble': []};
     this.__handlers[type][capture ? 'capture' : 'bubble'].push(wrapperFn);
   } else {
-    ael.call(this, type, wrapperFn, optionsOrCapture);
+    /** @suppress {checkTypes} */
+    // eslint-disable-next-line no-unused-vars
+    const ignored = ael.call(this, type, wrapperFn, optionsOrCapture);
   }
 }
 
 /**
  * @this {Event}
+ *
  */
 export function removeEventListener(type, fnOrObj, optionsOrCapture) {
   if (!fnOrObj) {
@@ -470,7 +475,9 @@ export function removeEventListener(type, fnOrObj, optionsOrCapture) {
   const rel = this instanceof Window ? nativeMethods.windowRemoveEventListener :
     nativeMethods.removeEventListener;
   if (unpatchedEvents[type]) {
-    return rel.call(this, type, fnOrObj, optionsOrCapture);
+    /** @suppress {checkTypes} */
+    const output = rel.call(this, type, fnOrObj, optionsOrCapture);
+    return output;
   }
   // NOTE(valdrin) invoking external functions is costly, inline has better perf.
   let capture, once, passive;
@@ -497,7 +504,9 @@ export function removeEventListener(type, fnOrObj, optionsOrCapture) {
       }
     }
   }
-  rel.call(this, type, wrapperFn || fnOrObj, optionsOrCapture);
+  /** @suppress {checkTypes} */
+  // eslint-disable-next-line no-unused-vars
+  const ignored = rel.call(this, type, wrapperFn || fnOrObj, optionsOrCapture);
   if (wrapperFn && nonBubblingEventsToRetarget[type] &&
       this.__handlers && this.__handlers[type]) {
     const arr = this.__handlers[type][capture ? 'capture' : 'bubble'];

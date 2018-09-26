@@ -71,5 +71,5 @@ if (utils.settings.inUse) {
   // Apply patches to builtins (e.g. Element.prototype) where applicable.
   patchBuiltins();
 
-  window.ShadowRoot = ShadyRoot;
+  window.ShadowRoot = /** @type {function(new:ShadowRoot)} */(ShadyRoot);
 }
