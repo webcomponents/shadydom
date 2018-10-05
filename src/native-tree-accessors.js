@@ -87,7 +87,7 @@ export function nextSibling(node) {
 }
 
 export function childNodes(node) {
-  return Array.prototype.slice.call(nodeAccessors.childNodes.get.call(node));
+  return nodeAccessors.childNodes.get.call(node);
 }
 
 export function parentElement(node) {
