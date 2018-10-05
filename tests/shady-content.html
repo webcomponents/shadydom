@@ -1363,7 +1363,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   });
 
   function getComposedChildNodes(node) {
-    return ShadyDOM.nativeTree.childNodes(node);
+    return Array.prototype.slice.call(ShadyDOM.nativeTree.childNodes(node));
   }
 
 </script>
