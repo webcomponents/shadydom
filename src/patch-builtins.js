@@ -17,6 +17,18 @@ import {addEventListener, removeEventListener} from './patch-events.js';
 import {attachShadow, ShadyRoot} from './attach-shadow.js';
 import {shadyDataForNode, ensureShadyDataForNode} from './shady-data.js';
 
+function fragmentFrom(list) {
+
+  const fragment = document.createDocumentFragment();
+
+  for (let node of list)
+    fragment.appendChild(
+      (node instanceof Node) ? node : document.createTextNode(node + '')
+    );
+
+  return fragment;
+}
+
 function getAssignedSlot(node) {
   mutation.renderRootNode(node);
   const nodeData = shadyDataForNode(node);
@@ -44,12 +56,40 @@ let nodeMixin = {
     return mutation.insertBefore(this, node);
   },
 
+  append(...nodes) {
+    this.appendChild( fragmentFrom( nodes ) );
+  },
+
   insertBefore(node, ref_node) {
     return mutation.insertBefore(this, node, ref_node);
   },
 
+  prepend(...nodes) {
+    this.insertBefore(fragmentFrom( nodes ), this.firstChild);
+  },
+
+  before(...nodes) {
+    if (this.parentNode instanceof Node) 
+      this.parentNode.insertBefore(fragmentFrom( nodes ), this);
+  },
+
+  after(...nodes) {
+    if (!(this.parentNode instanceof Node)) return;
+
+    nodes = fragmentFrom( nodes );
+
+    if (this.nextSibling instanceof Node)
+      this.parentNode.insertBefore(nodes, this.nextSibling);
+    else
+      this.parentNode.appendChild( nodes );
+  },
+
   removeChild(node) {
     return mutation.removeChild(this, node);
+  },
+
+  remove() {
+    if (this.parentNode instanceof Node) this.parentNode.removeChild( this );
   },
 
   /**
@@ -59,6 +99,11 @@ let nodeMixin = {
     mutation.insertBefore(this, node, ref_node);
     mutation.removeChild(this, ref_node);
     return node;
+  },
+
+  replaceWith(...nodes) {
+    if (this.parentNode instanceof Node)
+      this.parentNode.replaceChild(fragmentFrom( nodes ), this);
   },
 
   /**
