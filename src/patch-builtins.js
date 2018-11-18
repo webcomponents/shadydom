@@ -258,7 +258,7 @@ for (const property of Object.getOwnPropertyNames(Document.prototype)) {
         const shadyData = ensureShadyDataForNode(this);
         const eventName = property.substring(2);
         shadyData.__onCallbackListeners[property] && this.removeEventListener(eventName, shadyData.__onCallbackListeners[property]);
-        this.addEventListener(eventName, fn, {});
+        this.addEventListener(eventName, fn);
         shadyData.__onCallbackListeners[property] = fn;
       },
       /** @this {HTMLElement} */

@@ -678,6 +678,25 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       el.parentNode.removeChild(el);
     });
 
+    test('should use bubbling phase for event listeners added via properties', function () {
+      const parent = document.createElement('div');
+      parent.id = "parent";
+      document.body.appendChild(parent);
+      const child = document.createElement('div');
+      child.id = "child";
+      parent.appendChild(child);
+
+      const parentMouseDownSpy = sinon.spy();
+      const childMouseDownSpy = sinon.spy();
+
+      parent.onmousedown = parentMouseDownSpy;
+      child.onmousedown = childMouseDownSpy;
+
+      child.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, composed: true }));
+
+      assert.isTrue(childMouseDownSpy.calledBefore(parentMouseDownSpy), 'Event handler on child should be called first');
+    });
+
     test('.focus() and .blur() work as expected', function() {
       // NOTE: IE 11 fails to work for some reason in Saucelabs when running with WCT
       // Passes when running locally with WCT on the same Saucelabs VMs :/
