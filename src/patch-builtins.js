@@ -415,6 +415,7 @@ export function patchBuiltins() {
     HTMLElement;
   // These patches can always be done, for all supported browsers.
   patchBuiltin(ShadyRoot.prototype, shadowRootMixin);
+  patchBuiltin(ShadyRoot.prototype, interfaceParentNode);
   patchBuiltin(window.Node.prototype, nodeMixin);
   patchBuiltin(window.Window.prototype, windowMixin);
   patchBuiltin(window.Text.prototype, textMixin);
