@@ -29,7 +29,7 @@
     "build": "gulp",
     "test": "npm run lint && npm run build && wct",
     "debug": "rollup -c",
-    "lint": "eslint src",
+    "lint": "eslint src --fix",
     "regen-package-lock": "rm -rf node_modules package-lock.json; npm install",
     "prepack": "npm run build"
   },

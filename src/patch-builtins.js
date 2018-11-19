@@ -56,40 +56,12 @@ let nodeMixin = {
     return mutation.insertBefore(this, node);
   },
 
-  append(...nodes) {
-    this.appendChild( fragmentFrom( nodes ) );
-  },
-
   insertBefore(node, ref_node) {
     return mutation.insertBefore(this, node, ref_node);
   },
 
-  prepend(...nodes) {
-    this.insertBefore(fragmentFrom( nodes ), this.firstChild);
-  },
-
-  before(...nodes) {
-    if (this.parentNode instanceof Node) 
-      this.parentNode.insertBefore(fragmentFrom( nodes ), this);
-  },
-
-  after(...nodes) {
-    if (!(this.parentNode instanceof Node)) return;
-
-    nodes = fragmentFrom( nodes );
-
-    if (this.nextSibling instanceof Node)
-      this.parentNode.insertBefore(nodes, this.nextSibling);
-    else
-      this.parentNode.appendChild( nodes );
-  },
-
   removeChild(node) {
     return mutation.removeChild(this, node);
-  },
-
-  remove() {
-    if (this.parentNode instanceof Node) this.parentNode.removeChild( this );
   },
 
   /**
@@ -99,11 +71,6 @@ let nodeMixin = {
     mutation.insertBefore(this, node, ref_node);
     mutation.removeChild(this, ref_node);
     return node;
-  },
-
-  replaceWith(...nodes) {
-    if (this.parentNode instanceof Node)
-      this.parentNode.replaceChild(fragmentFrom( nodes ), this);
   },
 
   /**
@@ -138,13 +105,19 @@ let nodeMixin = {
 // since this is always "new" in that case.
 Object.defineProperties(nodeMixin, IsConnectedAccessor);
 
-// NOTE: For some reason 'Text' redefines 'assignedSlot'
-let textMixin = {
-  /**
-   * @this {Text}
-   */
-  get assignedSlot() {
-    return getAssignedSlot(this);
+/**
+ * @interface
+ *
+ * @see https://dom.spec.whatwg.org/#parentnode
+ */
+let interfaceParentNode = {
+
+  append(...nodes) {
+    this.appendChild( fragmentFrom( nodes ) );
+  },
+
+  prepend(...nodes) {
+    this.insertBefore(fragmentFrom( nodes ), this.firstChild);
   }
 };
 
@@ -180,10 +153,61 @@ let queryMixin = {
       return utils.matchesSelector(n, selector);
     });
   }
-
 };
 
-let fragmentMixin = {};
+/**
+ * @interface
+ *
+ * @see https://dom.spec.whatwg.org/#childnode
+ */
+let interfaceChildNode = {
+
+  before(...nodes) {
+    if (this.parentNode instanceof Node) {
+      this.parentNode.insertBefore(fragmentFrom( nodes ), this);
+    }
+  },
+
+  after(...nodes) {
+    if (!(this.parentNode instanceof Node)) {
+      return;
+    }
+
+    nodes = fragmentFrom( nodes );
+
+    if (this.nextSibling instanceof Node) {
+      this.parentNode.insertBefore(nodes, this.nextSibling);
+    } else {
+      this.parentNode.appendChild( nodes );
+    }
+  },
+
+  remove() {
+    if (this.parentNode instanceof Node) {
+      this.parentNode.removeChild( this );
+    }
+  },
+
+  replaceWith(...nodes) {
+    if (this.parentNode instanceof Node) {
+      this.parentNode.replaceChild(fragmentFrom( nodes ), this);
+    }
+  }
+};
+
+// NOTE: For some reason 'Text' redefines 'assignedSlot'
+let textMixin = utils.extend({
+  /**
+   * @this {Text}
+   */
+  get assignedSlot() {
+    return getAssignedSlot(this);
+  }
+}, interfaceChildNode);
+
+let commentMixin = utils.extend({}, interfaceChildNode);
+
+let fragmentMixin = utils.extend({}, interfaceParentNode);
 
 let slotMixin = {
 
@@ -247,11 +271,11 @@ let elementMixin = utils.extendAll({
     return getAssignedSlot(this);
   }
 
-}, queryMixin, slotMixin);
+}, interfaceParentNode, queryMixin, interfaceChildNode, slotMixin);
 
 Object.defineProperties(elementMixin, ShadowRootAccessor);
 
-let documentMixin = {
+let documentMixin = utils.extend({
   /**
    * @this {Document}
    */
@@ -270,8 +294,7 @@ let documentMixin = {
     })[0];
     return result || null;
   }
-
-};
+}, interfaceParentNode);
 
 Object.defineProperties(documentMixin, {
   '_activeElement': ActiveElementAccessor.activeElement
@@ -395,6 +418,7 @@ export function patchBuiltins() {
   patchBuiltin(window.Node.prototype, nodeMixin);
   patchBuiltin(window.Window.prototype, windowMixin);
   patchBuiltin(window.Text.prototype, textMixin);
+  patchBuiltin(window.Comment.prototype, commentMixin);
   patchBuiltin(window.Element.prototype, elementMixin);
   patchBuiltin(window.DocumentFragment.prototype, fragmentMixin);
   patchBuiltin(window.Document.prototype, documentMixin);
