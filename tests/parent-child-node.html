@@ -1,0 +1,88 @@
+<!DocType HTML>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <script src="../node_modules/@webcomponents/webcomponents-platform/webcomponents-platform.js"></script>
+    <script src="../node_modules/@webcomponents/template/template.js"></script>
+    <script>
+      ShadyDOM = {force: true};
+    </script>
+    <script src="../shadydom.min.js"></script>
+
+    <script src="../node_modules/wct-browser-legacy/browser.js"></script>
+  </head>
+  <body>
+    <template>Text<!-- Comment --><p>Element</p></template>
+
+    <div></div>
+
+    <script>
+      var append = Element.prototype.append,
+        childNodes,
+        fragment = document.querySelector('template').content.cloneNode( true ),
+        sandBox = document.querySelector('div').attachShadow({mode: 'open'});
+
+      function getNodeText() {
+
+        return  Array.prototype.map.call(sandBox.childNodes, function (node) {
+
+          return  node.nodeValue || node.textContent;
+        });
+      }
+
+      test('remove() of ChildNode interface',  function () {
+
+        childNodes = Array.apply(null, fragment.childNodes);
+
+        for (var i = 0;  childNodes[i];  i++)  childNodes[i].remove();
+
+        assert.strictEqual(fragment.childNodes.length, 0);
+      });
+
+      test('append() of ParentNode interface',  function () {
+
+        append.apply(sandBox, childNodes);
+
+        assert.deepEqual(
+          getNodeText(childNodes),  ['Text', 'Comment', 'Element']
+        );
+      });
+
+      test('prepend() of ParentNode interface',  function () {
+
+        sandBox.prepend( childNodes.slice(1) );
+
+        assert.deepEqual(
+          getNodeText(childNodes),  ['Comment', 'Element', 'Text']
+        );
+      });
+
+      test('after() of ChildNode interface',  function () {
+
+        sandBox.childNodes[1].after( childNodes[1] );
+
+        assert.deepEqual(
+          getNodeText(childNodes),  ['Element', 'Comment', 'Text']
+        );
+      });
+
+      test('after() of ChildNode interface',  function () {
+
+        sandBox.childNodes[0].before( childNodes[0] );
+
+        assert.deepEqual(
+          getNodeText(childNodes),  ['Text', 'Element', 'Comment']
+        );
+      });
+
+      test('replaceWith() of ChildNode interface',  function () {
+
+        sandBox.childNodes[2].replaceWith('Text2', document.createElement('i'));
+
+        assert.deepEqual(
+          getNodeText(childNodes),  ['Text', 'Element', 'Text2', '']
+        );
+      });
+    </script>
+  </body>
+</html>
