@@ -111,13 +111,22 @@ Object.defineProperties(nodeMixin, IsConnectedAccessor);
  * @see https://dom.spec.whatwg.org/#parentnode
  */
 let interfaceParentNode = {
-
+  /**
+   * @this {Document|DocumentFragment|Element}
+   *
+   * @param  {...Node} nodes
+   */
   append(...nodes) {
-    this.appendChild( fragmentFrom( nodes ) );
+    this.appendChild(fragmentFrom(nodes));
   },
 
+  /**
+   * @this {Document|DocumentFragment|Element}
+   *
+   * @param  {...Node} nodes
+   */
   prepend(...nodes) {
-    this.insertBefore(fragmentFrom( nodes ), this.firstChild);
+    this.insertBefore(fragmentFrom(nodes), this.firstChild);
   }
 };
 
@@ -161,36 +170,53 @@ let queryMixin = {
  * @see https://dom.spec.whatwg.org/#childnode
  */
 let interfaceChildNode = {
-
+  /**
+   * @this {Element|Text|Comment}
+   *
+   * @param  {...Node} nodes
+   */
   before(...nodes) {
     if (this.parentNode instanceof Node) {
-      this.parentNode.insertBefore(fragmentFrom( nodes ), this);
+      this.parentNode.insertBefore(fragmentFrom(nodes), this);
     }
   },
 
+  /**
+   * @this {Element|Text|Comment}
+   *
+   * @param  {...Node} nodes
+   */
   after(...nodes) {
     if (!(this.parentNode instanceof Node)) {
       return;
     }
 
-    nodes = fragmentFrom( nodes );
+    nodes = fragmentFrom(nodes);
 
     if (this.nextSibling instanceof Node) {
       this.parentNode.insertBefore(nodes, this.nextSibling);
     } else {
-      this.parentNode.appendChild( nodes );
+      this.parentNode.appendChild(nodes);
     }
   },
 
+  /**
+   * @this {Element|Text|Comment}
+   */
   remove() {
     if (this.parentNode instanceof Node) {
-      this.parentNode.removeChild( this );
+      this.parentNode.removeChild(this);
     }
   },
 
+  /**
+   * @this {Element|Text|Comment}
+   *
+   * @param  {...Node} nodes
+   */
   replaceWith(...nodes) {
     if (this.parentNode instanceof Node) {
-      this.parentNode.replaceChild(fragmentFrom( nodes ), this);
+      this.parentNode.replaceChild(fragmentFrom(nodes), this);
     }
   }
 };
