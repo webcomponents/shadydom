@@ -406,6 +406,16 @@ class ShadyRoot {
     }
   }
 
+  _forceUpdate() {
+    if (!utils.settings['preferPerformance']) {
+      return;
+    }
+    this._addSlots(this.querySelectorAll('slot'));
+    if (this._hasInsertionPoint()) {
+      this._asyncRender();
+    }
+  }
+
   /**
    * Adds the given slots. Slots are maintained in an dom-ordered list.
    * In addition a map of name to slot is updated.

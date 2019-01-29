@@ -79,7 +79,10 @@ if (utils.settings.inUse) {
     // access that requires Shadow DOM behavior to be proxied via `ShadyDOM.wrap`.
     'noPatch': utils.settings.noPatch,
     'nativeMethods': nativeMethods,
-    'nativeTree': nativeTree
+    'nativeTree': nativeTree,
+    'forceUpdate': (shadowRoot) => {
+      shadowRoot._forceUpdate();
+    }
   };
 
   window['ShadyDOM'] = ShadyDOM;

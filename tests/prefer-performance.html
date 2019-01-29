@@ -77,19 +77,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       }
 
-      customElements.define(name, Klass);
-    }
-
-    window.makeFocusable = function() {
-      this.setAttribute('tabIndex', -1);
+      return customElements.define(name, Klass);
     }
   </script>
 
   <template id="x-project">
     x-project: [<slot></slot>]
   </template>
+
+  <template id="x-simple">
+  </template>
   <script>
     defineTestElement('x-project');
+
+    defineTestElement('x-simple')
   </script>
 
 
@@ -114,8 +115,33 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.deepEqual(Array.from(window.testEl.childNodes), [window.testChild]);
     });
 
+    test('slots are added when in document fragments', function() {
+      const el = document.createElement('x-simple');
+      document.body.appendChild(el);
+      const d = document.createElement('div');
+      const wrapper = ShadyDOM.wrap(el);
+      wrapper.appendChild(d);
+      const frag = document.createDocumentFragment();
+      const slot = document.createElement('slot');
+      frag.appendChild(slot);
+      wrapper.shadowRoot.appendChild(frag);
+      assert.deepEqual(ShadyDOM.wrap(slot).assignedNodes(), [d]);
+      document.body.removeChild(el);
+    });
 
-
+    test('slots can be added not in document fragments when `forceUpdateSlots` is used', function() {
+      const el = document.createElement('x-simple');
+      const d = document.createElement('div');
+      document.body.appendChild(el);
+      const wrapper = ShadyDOM.wrap(el);
+      wrapper.appendChild(d);
+      const slot = document.createElement('slot');
+      wrapper.shadowRoot.appendChild(slot);
+      assert.deepEqual(ShadyDOM.wrap(slot).assignedNodes(), []);
+      ShadyDOM.forceUpdate(wrapper.shadowRoot);
+      assert.deepEqual(ShadyDOM.wrap(slot).assignedNodes(), [d]);
+      document.body.removeChild(el);
+    });
 
   });
 
