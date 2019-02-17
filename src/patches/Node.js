@@ -159,8 +159,8 @@ export const NodePatches = utils.getOwnPropertyDescriptors({
 
   /** @this {Node} */
   get isConnected() {
-    if (nativeIsConnected && nativeIsConnected.call(this)) {
-      return true;
+    if (nativeIsConnected) {
+      return nativeIsConnected.call(this);
     }
     if (this.nodeType == Node.DOCUMENT_FRAGMENT_NODE) {
       return false;
