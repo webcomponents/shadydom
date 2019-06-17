@@ -28,24 +28,21 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <hr>
 
 <script>
-  const simpleWrapper = ShadyDOM.wrap(window.simple);
-  simpleWrapper.attachShadow({mode: 'open'});
+  window.simple.attachShadow({mode: 'open'});
   var d = document.createElement('div');
-  d.textContent = 'shadowRoot!';
-  simpleWrapper.shadowRoot.appendChild(d);
+  d.innerHTML = '<span id="shadow">shadowRoot!</span>';
+  window.simple.shadowRoot.appendChild(d);
 
-  const distWrapper = ShadyDOM.wrap(window.dist);
-  distWrapper.attachShadow({mode: 'open'});
-  distWrapper.shadowRoot.innerHTML = 'before [<slot></slot>] after';
+  window.dist.attachShadow({mode: 'open'});
+  window.dist.shadowRoot.innerHTML = 'before [<slot></slot>] after';
 
   var host = document.createElement('div');
   host.id = 'host';
-  const hostWrapper = ShadyDOM.wrap(host);
-  hostWrapper.attachShadow({mode: 'open'});
+  host.attachShadow({mode: 'open'});
   // Populate the initial pool of light DOM children.
-  hostWrapper.innerHTML = 'abc';
+  host.innerHTML = '<div>abc</div>';
   document.body.appendChild(host);
-  hostWrapper.shadowRoot.innerHTML = '<slot>fallback</slot>';
+  host.shadowRoot.innerHTML = '<div>[<slot name="yo">fallback</slot>]</div>';
 </script>
 
 </body>

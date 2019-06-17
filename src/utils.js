@@ -18,8 +18,10 @@ const desc = Object.getOwnPropertyDescriptor(Node.prototype, 'firstChild');
 
 settings.hasDescriptors = Boolean(desc && desc.configurable && desc.get);
 settings.inUse = settings['force'] || !settings.hasNativeShadowDOM;
-settings.noPatch = settings['noPatch'] || false;
+settings.noPatch = /** @type {string|boolean} */(settings['noPatch'] || false);
 settings.preferPerformance = settings['preferPerformance'];
+
+settings.patchOnDemand = (settings.noPatch === 'on-demand');
 
 const IS_IE = navigator.userAgent.match('Trident');
 settings.IS_IE = IS_IE;
