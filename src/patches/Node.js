@@ -246,6 +246,12 @@ export const NodePatches = utils.getOwnPropertyDescriptors({
    * @param {Node=} ref_node
    */
   insertBefore(node, ref_node) {
+    if (this['__shady_hook_insertBefore']) {
+      recordInsertBefore(node, this, ref_node);
+      this['__shady_hook_insertBefore'](node, ref_node);
+      return node;
+    }
+
     // optimization: assume native insertBefore is ok if the nodes are not in the document.
     if (this.ownerDocument !== doc && node.ownerDocument !== doc) {
       this[utils.NATIVE_PREFIX + 'insertBefore'](node, ref_node);
@@ -385,6 +391,11 @@ export const NodePatches = utils.getOwnPropertyDescriptors({
    * @param {boolean=} skipUnscoping
    */
   removeChild(node, skipUnscoping = false) {
+    if (this['__shady_hook_removeChild']) {
+      recordRemoveChild(node, this);
+      this['__shady_hook_removeChild'](node);
+      return node;
+    }
     if (this.ownerDocument !== doc) {
       return this[utils.NATIVE_PREFIX + 'removeChild'](node);
     }
